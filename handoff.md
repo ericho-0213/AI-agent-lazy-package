@@ -19,3 +19,15 @@
   - [x] 完成 **本機跨磁碟非敏感路徑開放與智慧解析**：更新 `server/projectTools.js` 與 `server/agentCore.js`，使 `parse_excel_safe` 與 `file_ops`（`list`/`read`）支援任意非敏感磁碟路徑（如 `D:\良率資料\...`）、省略 `.xlsx` 自動補齊、模型腦補子路徑向上回退救援與資料夾列出/最新檔案解析（同時保留工作區外禁止寫入與 `.env`/機敏憑證封鎖）。
   - [x] 完成 **圖片創建工坊「🗑️ 清除歷史對話 (`DELETE /api/image/history`)」與「🕶️ 隱私無痕模式 (`privateMode`)」**：支援一鍵清空前端對話、Prompt、`memory/image_taste.json`、`memory/image_gallery.json` 及對話歷史內的圖片提示詞（保留圖片檔本體供檢視量測），事前開啟無痕模式亦不落盤審美記憶與提示詞。
   - [x] 完成 **上下文水位計基底精簡與 Token 估算校正**：`readHandoffSummary()` 改為僅擷取 `BRIDGE_SYNC` 交接區塊、`estimateTokens()` 校正為符合 Qwen2.5 詞表的中文 `0.85`／非中文 `0.3` 係數、`DELETE /api/chat/history` 一併清除交接殘留，並於介面顯示「系統 ＋ 對話」明細（空載降至 `1,150 / 4,096 tok`，`28%・充裕`），且通過 `node scripts/verify.js` **13/13** 全端驗證。
+  - [x] 完成 **跨電腦落地建置懶人包與 GitHub 開源發布**：撰寫 [`本機自主AI_Agent建置懶人包.md`](./本機自主AI_Agent建置懶人包.md)、[`scripts/setup_new_pc.ps1`](./scripts/setup_new_pc.ps1) 與跨機容錯版 [`scripts/verify.js`](./scripts/verify.js)（`13/13` 通過），去敏提交（`05c644c`）並建立公開儲存庫 `https://github.com/ericho-0213/AI-agent-lazy-package` 推送完成。
+
+## 下一步待辦 (Next Steps)
+- [ ] **另一台電腦實機驗證**：於目標 Windows 電腦執行 `git clone https://github.com/ericho-0213/AI-agent-lazy-package.git` 後執行 `.\scripts\setup_new_pc.ps1`，驗證跨機從零部署與 `node scripts/verify.js` 結果。
+- [ ] **選配擴充進階模型**：依需求透過 `scripts/fast_pull_ollama.ps1` 或戰情室中控台拉取 `qwen2.5:7b`、`deepseek-r1:7b` 等模型。
+- [ ] **依現場需求擴充專案工具**：於 `server/projectTools.js` 擴充其他系統之自動化數據分析或報表工作流。
+
+## 踩坑與決策紀錄 (Decisions & Pitfalls)
+1. **模型拉取防卡死（4 連線平行 HTTP Range 斷點續傳）**：官方 `ollama pull` 預設 16 連線併發易觸發連線重置卡死；改採 `scripts/fast_pull_ollama.ps1`（4 連線 Range 續傳＋SHA-256 校驗＋`curl.exe -C -` 保底）搭配 `keep_awake_ollama.ps1`（`SetThreadExecutionState`）防休眠。
+2. **上下文水位基底瘦身（`63%` → `28%`）**：Ollama 改走原生 `tools` 不再於 System Prompt 重複傾倒文字菜單、`readHandoffSummary()` 僅擷取 `BRIDGE_SYNC` 區塊並校正 Qwen2.5 中文 Token 估算係數（`0.85`），空載佔用由 `2,584` 降至 `1,150 / 4,096 tok`。
+3. **跨磁碟唯讀與腦補路徑救援**：實作 `resolveSmartReadablePath()` 與 `allowAnyLocalRead`，支援 `C:\`、`D:\`、`T:\` 等非敏感磁碟唯讀、省略 `.xlsx` 自動補齊、腦補子路徑向上回退救援與資料夾列出／最新檔案解析（寫入嚴限工作區，封鎖 `.env` 與憑證）。
+4. **記憶治理與圖片工坊隱私**：提供 `learning_governance.json` Diff 提案核准與單筆原子回退，並於圖片工坊實作「🕶️ 隱私無痕模式 (`privateMode`)」與 `DELETE /api/image/history` 一鍵抹除提示詞與偏好紀錄。
