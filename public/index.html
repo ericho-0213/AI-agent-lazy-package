@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini-Antigravity 本機自主 AI Agent 戰情室</title>
+  <link rel="stylesheet" href="/style.css?v=2" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 頂部導航列 -->
+    <header class="topbar">
+      <div class="brand-group">
+        <div class="brand-badge">⚡</div>
+        <div>
+          <div class="brand-title">Mini-Antigravity 本機自主 AI Agent 中樞</div>
+          <div class="brand-sub" id="hwSubtitle">正在檢測本機硬體與模型庫...</div>
+        </div>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="chat">💬 自主 Agent 戰情室</button>
+        <button class="nav-tab" data-tab="studio">🎨 圖片創建 & 幾何量測工坊</button>
+        <button class="nav-tab" data-tab="hub">🧰 本機專案特定功能中控台</button>
+        <button class="nav-tab" data-tab="memory">🧬 靈魂人格 & 記憶鐵律 <span id="navPendingBadge" class="nav-badge" style="display:none;">0</span></button>
+      </nav>
+
+      <div class="status-pills">
+        <div class="pill" title="Ollama 本機端 LLM 服務狀態">
+          <span class="dot" id="ollamaDot"></span>
+          <span id="ollamaPillText">Ollama 連線中...</span>
+        </div>
+        <div class="pill" title="模型儲存於 D:\OllamaModels">
+          <span>💾</span>
+          <span id="modelsDirPill">D:\OllamaModels</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <!-- 頁籤 1：自主 Agent 戰情室 -->
+      <section class="tab-panel active" id="tab-chat">
+        <div class="chat-layout">
+          <div class="card chat-controls">
+            <div class="control-row">
+              <label class="field-label" style="margin:0;">大腦模式：</label>
+              <select id="providerSelect" class="select">
+                <option value="ollama">🧠 本機 Ollama (離線零限制)</option>
+                <option value="gemini" id="geminiOption">☁️ Gemini 雲端協同腦</option>
+              </select>
+
+              <label class="field-label" style="margin:0;">模型：</label>
+              <select id="modelSelect" class="select"></select>
+
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;">
+                <input type="checkbox" id="enableToolsChk" checked />
+                <span>啟用 10 大自主工具 (ReAct)</span>
+              </label>
+            </div>
+
+            <div class="control-row">
+              <button class="btn btn-sm" id="btnClearChat">🗑️ 清空對話歷史</button>
+            </div>
+
+            <div class="context-gauge-row">
+              <span class="ctx-label">📊 上下文水位：</span>
+              <div class="ctx-bar-track" title="達 80% 警戒線時將自動於安全檢查點壓縮早期對話">
+                <div class="ctx-bar-fill" id="ctxGaugeBarFill" style="width:0%;"></div>
+              </div>
+              <span class="ctx-readout" id="ctxGaugeText">0 / 4,096 tokens (0%)</span>
+              <select id="ctxBudgetSelect" class="select select-compact" title="調整上下文預算 (num_ctx) 與 80% 自動壓縮上限">
+                <option value="4096">預算 4,096 tok (3B 極速)</option>
+                <option value="8192">預算 8,192 tok (長對話)</option>
+                <option value="16384">預算 16,384 tok (超長脈絡)</option>
+              </select>
+              <button class="btn btn-sm" id="btnCompactNow" title="立即將早期對話濃縮為前情提要記憶膠囊，保留最近對話">🗜️ 立即壓縮上下文</button>
+            </div>
+          </div>
+
+          <div id="contextCapsuleBanner" class="context-capsule" style="display:none;"></div>
+
+          <div class="quick-prompts">
+            <button class="quick-chip" data-prompt="請幫我自由創建一張圖片：未來半導體無塵室中的全像晶圓檢測 AI 實驗室，賽博龐克科技風格">🎨 測試 AI 自由生圖</button>
+            <button class="quick-chip" data-prompt="請用 scan_local_projects 巡檢我電腦上目前所有 Antigravity 專案的健康狀態並做成表格彙整">🏛️ 巡檢本機 20+ 專案</button>
+            <button class="quick-chip" data-prompt="請呼叫 query_mes_spc 讀取批號 5LA261106-A10 的 IPQC 檢驗數據並計算 Cpk 等 SPC 指標">🏭 分析 IPQC 批號 SPC</button>
+            <button class="quick-chip" data-prompt="請先用 parse_excel_safe 列出本機的 Excel 檔案，然後幫我解析 AOI覆判記錄總表.xlsx 前 10 筆內容">📊 Zero-OOM 解析 Excel</button>
+            <button class="quick-chip" data-prompt="請用 inspect_aoi_system 查詢目前 AOI 覆判系統的最新案件與 KLA 缺陷座標統計">🔬 查詢 AOI 案件與 KLA</button>
+            <button class="quick-chip" data-prompt="請用 secondbrain_tool 搜尋我 Obsidian 第二大腦中關於「品保」或「AOI」的筆記">📓 搜尋 Obsidian 第二大腦</button>
+          </div>
+
+          <div class="card chat-messages" id="chatMessages">
+            <div class="msg-row assistant">
+              <div class="msg-bubble md-body">
+                <strong>歡迎來到您的本機自主 AI Agent 中樞！</strong><br />
+                目前大腦可直接使用本機 <strong>Ollama</strong>（模型存於 <code>D:\OllamaModels</code>，無次數與內容限制），並已掛載您本機專案專屬的 10 大實戰工具。<br />
+                您可以直接輸入指令、點擊上方快捷任務，或切換到「🎨 圖片創建 & 幾何量測工坊」創作圖片與量測尺寸。
+              </div>
+            </div>
+          </div>
+
+          <div class="card chat-composer">
+            <textarea id="chatInput" class="textarea" placeholder="輸入您想交辦給本機 Agent 的任務（Enter 送出，Shift+Enter 換行）..."></textarea>
+            <button id="btnSendChat" class="btn btn-primary" style="height:56px;padding:0 26px;">🚀 發送指令</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 頁籤 2：圖片創建與 Sobel 幾何量測工坊 -->
+      <section class="tab-panel" id="tab-studio">
+        <div class="studio-grid">
+          <div class="studio-sidebar">
+            <div class="card">
+              <h3 class="card-title">
+                <span>🎨 圖片自由創建引擎</span>
+                <label style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;font-weight:600;color:#7dd3fc;cursor:pointer;" title="開啟後，生圖與改圖對話不會寫入審美偏好記憶或圖庫提示詞紀錄">
+                  <input type="checkbox" id="imgPrivateModeChk" />
+                  <span>🕶️ 隱私無痕</span>
+                </label>
+              </h3>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <label class="field-label" style="margin:0;">畫面描述 Prompt（中/英文皆可自由創作）</label>
+                    <button id="btnImgAgentOptimize" class="btn btn-sm" style="padding:3px 9px;font-size:0.78rem;" title="由 AI Agent 協助潤飾擴充上方畫面描述">💬 請 AI 優化描述</button>
+                  </div>
+                  <textarea id="imgPrompt" class="textarea" rows="3" placeholder="例如：高解析晶圓表面微米級缺陷光學顯微影像、夕陽下金色湖面柔和波紋..."></textarea>
+                </div>
+
+                <div class="form-grid-2">
+                  <div>
+                    <label class="field-label">生圖引擎</label>
+                    <select id="imgEngine" class="select">
+                      <option value="local-sd" selected>🏠 Local SD-LCM (本機無限制・零浮水印)</option>
+                      <option value="flux">✨ Flux (雲端高畫質・已去浮水印)</option>
+                      <option value="turbo">⚡ Turbo (雲端極速・已去浮水印)</option>
+                      <option value="local-svg">🖥️ Local SVG (100% 離線工程圖)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="field-label">風格預設</label>
+                    <select id="imgStyle" class="select">
+                      <option value="photorealistic">📷 寫實高清攝影</option>
+                      <option value="cyberpunk">🌃 賽博龐克科技</option>
+                      <option value="blueprint">📐 半導體工程藍圖</option>
+                      <option value="illustration">🎨 數位概念插畫</option>
+                      <option value="anime">✨ 日系動漫風格</option>
+                      <option value="none">🆓 純粹無額外風格詞</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div>
+                    <label class="field-label">尺寸比例</label>
+                    <select id="imgSize" class="select">
+                      <option value="512x512" selected>1:1 本機極速 (512×512)</option>
+                      <option value="1024x1024">1:1 高解析 (1024×1024)</option>
+                      <option value="1280x720">16:9 寬螢幕 (1280×720)</option>
+                      <option value="720x1280">9:16 直式 (720×1280)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="field-label">隨機種子 Seed（留空隨機）</label>
+                    <input id="imgSeed" class="input" type="number" placeholder="自動隨機" />
+                  </div>
+                </div>
+
+                <button id="btnGenImage" class="btn btn-primary">✨ 立即自由創建圖片</button>
+
+                <!-- AI Agent 生圖即時反饋 & 提示詞協作視窗 -->
+                <div class="img-agent-panel">
+                  <div class="img-agent-header">
+                    <span>🤖 AI Agent 即時反饋 &amp; 改圖對話</span>
+                    <div style="display:inline-flex;align-items:center;gap:6px;">
+                      <span id="imgAgentStateBadge" class="tag-ok">待命就緒</span>
+                      <button id="btnClearImgHistory" class="btn btn-danger btn-sm" style="padding:2px 8px;font-size:0.75rem;" title="一鍵清空上方 Prompt、改圖對話紀錄、AI 生圖偏好記憶與圖庫提示詞紀錄">🗑️ 清除歷史對話</button>
+                    </div>
+                  </div>
+                  <div id="imgAgentFeedbackLog" class="img-agent-log">
+                    <div class="img-agent-msg system">💡 點擊「立即自由創建圖片」後，此處會即時回報 AI 轉譯提示詞、引擎狀態、耗時秒數與去浮水印結果；您也可在下方輸入修改意見繼續與 AI 溝通調整上方的 Prompt！</div>
+                  </div>
+                  <div class="img-agent-chat-row">
+                    <input id="imgAgentChatInput" class="input" style="padding:7px 10px;font-size:0.86rem;" placeholder="跟 AI 討論修改描述（如：加夕陽水波、光影柔和一點）..." />
+                    <button id="btnImgAgentSend" class="btn btn-sm" title="請 AI 幫您修改上方 Prompt">💬 溝通</button>
+                    <button id="btnImgAgentSendAndGen" class="btn btn-primary btn-sm" title="溝通修改 Prompt 後自動重畫">🔄 改圖</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="flex:1;">
+              <h3 class="card-title">
+                <span>🖼️ 本機生圖圖庫</span>
+                <button id="btnRefreshGallery" class="btn btn-sm">🔄 重新整理</button>
+              </h3>
+              <div id="galleryGrid" class="gallery-grid"></div>
+            </div>
+          </div>
+
+          <div class="studio-canvas-area">
+            <div class="card measure-toolbar">
+              <button id="btnToggleMeasure" class="btn btn-primary btn-sm">📏 幾何切線量測：開啟</button>
+              <button id="btnToggleSnap" class="btn btn-sm">🧲 Sobel 自動吸附 (S)：開啟</button>
+              <button id="btnSelectClear" class="btn btn-sm">🗑️ 點選清除：關閉</button>
+              <button id="btnClearMeasures" class="btn btn-danger btn-sm">清空全部標記</button>
+              <button id="btnResetZoom" class="btn btn-sm">🔍 1:1 置中視角</button>
+
+              <div style="display:inline-flex;align-items:center;gap:6px;margin-left:auto;">
+                <span class="field-label" style="margin:0;">比例尺(μm/px)：</span>
+                <input id="scaleUmInput" class="input" type="number" step="0.01" value="1.80" style="width:84px;padding:5px 8px;" />
+                <select id="unitSelect" class="select" style="width:78px;padding:5px 8px;">
+                  <option value="um">μm</option>
+                  <option value="mm">mm</option>
+                  <option value="px">px</option>
+                </select>
+                <a id="btnDownloadCanvasImg" class="btn btn-sm" download style="text-decoration:none;">⬇️ 下載圖片</a>
+              </div>
+            </div>
+
+            <div class="canvas-stage" id="canvasStage">
+              <canvas id="measureCanvas"></canvas>
+            </div>
+
+            <div class="canvas-hint-bar">
+              <span id="measureStatusHint">操作提示：左鍵依序點擊兩點完成幾何切線尺寸標註｜按住尺寸框可自由拖曳微調淨空｜滾輪縮放｜右鍵拖曳平移｜懸停尺寸框點 ✖ 可刪除單筆</span>
+              <span id="zoomReadout">縮放: 100%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 頁籤 3：本機專案特定功能中控台 -->
+      <section class="tab-panel" id="tab-hub">
+        <div class="hub-grid">
+          <!-- 模型管理 -->
+          <div class="card">
+            <h3 class="card-title">
+              <span>🧠 Ollama 本機模型庫 (D:\OllamaModels)</span>
+              <button class="btn btn-sm" id="btnRefreshStatus">🔄 刷新狀態</button>
+            </h3>
+            <div id="ollamaModelsList" style="margin-bottom:12px;"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <input id="pullModelInput" class="input" style="flex:1;min-width:170px;" placeholder="輸入要拉取的模型，如 qwen2.5:7b" value="qwen2.5:7b" />
+              <button id="btnPullModel" class="btn btn-primary btn-sm">⬇️ 拉取至 D 槽</button>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+              <button class="quick-chip pull-preset" data-model="qwen2.5:3b">qwen2.5:3b (極速 1.9GB)</button>
+              <button class="quick-chip pull-preset" data-model="qwen2.5:7b">qwen2.5:7b (全能 4.7GB)</button>
+              <button class="quick-chip pull-preset" data-model="qwen2.5-coder:7b">qwen2.5-coder:7b (程式專家)</button>
+              <button class="quick-chip pull-preset" data-model="deepseek-r1:7b">deepseek-r1:7b (深度推理)</button>
+            </div>
+            <div id="pullProgressText" style="margin-top:8px;font-size:0.88rem;color:var(--accent-cyan);"></div>
+          </div>
+
+          <!-- MES / IPQC SPC 分析 -->
+          <div class="card">
+            <h3 class="card-title">
+              <span>🏭 MES / IPQC 製程數據 & SPC 管制分析</span>
+              <div style="display:flex;gap:8px;">
+                <input id="mesLotInput" class="input" style="width:170px;padding:5px 10px;" placeholder="批號 (如 5LA261106-A10)" />
+                <button id="btnLoadMesSpc" class="btn btn-primary btn-sm">計算 SPC</button>
+              </div>
+            </h3>
+            <div id="mesSpcOutput" style="font-size:0.93rem;">點擊「計算 SPC」載入 IPQC Q004 批號量測明細與 Cpk 能力指標。</div>
+          </div>
+
+          <!-- Zero-OOM Excel 解析台 -->
+          <div class="card hub-card-wide">
+            <h3 class="card-title">
+              <span>📊 Zero-OOM Excel 台帳安全解析台（4-Byte 預檢 ＋ Last-Value 百萬空白列截斷）</span>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <select id="excelFileSelect" class="select" style="min-width:340px;padding:6px 10px;"></select>
+                <button id="btnParseExcel" class="btn btn-primary btn-sm">⚡ 安全極速解析</button>
+              </div>
+            </h3>
+            <div id="excelOutput">請選擇專案內的 .xlsx 台帳並點擊「安全極速解析」。</div>
+          </div>
+
+          <!-- 本機 23 大專案健康巡檢 -->
+          <div class="card hub-card-wide">
+            <h3 class="card-title">
+              <span>🏛️ 本機全專案健康與啟動狀態巡檢</span>
+              <button id="btnScanProjects" class="btn btn-sm">🔍 重新巡檢專案</button>
+            </h3>
+            <div id="projectsOutput" class="data-table-wrap"></div>
+          </div>
+
+          <!-- AOI 與 Outlook 唯讀摘要 -->
+          <div class="card">
+            <h3 class="card-title">
+              <span>🔬 AOI 覆判系統案件與 KLA 座標摘要</span>
+              <button id="btnLoadAoi" class="btn btn-sm">🔄 載入 AOI 案件</button>
+            </h3>
+            <div id="aoiOutput" class="data-table-wrap"></div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">
+              <span>📧 Outlook 唯讀安全檢索 & Obsidian 連結</span>
+              <div style="display:flex;gap:6px;">
+                <button id="btnOutlookCal" class="btn btn-sm">📅 未來14天行程</button>
+                <button id="btnSecondbrainLint" class="btn btn-sm">📓 Secondbrain Lint</button>
+              </div>
+            </h3>
+            <div id="outlookBrainOutput" style="max-height:340px;overflow-y:auto;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 頁籤 4：靈魂人格與記憶鐵律 -->
+      <section class="tab-panel" id="tab-memory">
+        <div class="card" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div>
+            <strong>🧬 Hermes 三層持久記憶 &amp; 成長治理中心（即時熱生效）</strong>
+            <div style="font-size:0.88rem;color:var(--text-secondary);">
+              對話糾正與反思總結支援「Git Diff 提案審核 ＆ 一鍵原子回退」；<code>MEMORY.md</code> 內含 <code>🔴</code> 標記之安全鐵律受後端強制保護不可刪除或回退。
+            </div>
+            <div id="learningStatusBox" style="margin-top:6px;font-size:0.85rem;color:#93c5fd;">正在讀取自主學習累積狀態...</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <label class="field-label" style="margin:0;">學習寫入政策：</label>
+            <select id="govPolicySelect" class="select" style="width:auto;padding:6px 10px;">
+              <option value="review">🟡 提案審核模式 (先看 Diff 再核准)</option>
+              <option value="auto">🟢 自動套用模式 (寫入並保留回退)</option>
+            </select>
+            <button id="btnAutoLearnNow" class="btn btn-primary btn-sm">✨ 讓 AI 從近期對話自主總結並學習</button>
+            <button id="btnReloadMemory" class="btn btn-sm">🔄 重新載入記憶檔案</button>
+          </div>
+        </div>
+
+        <!-- 成長治理工作台：Diff 提案審核 & 原子回退 -->
+        <div class="gov-grid" style="margin-bottom:16px;">
+          <div class="card">
+            <h3 class="card-title">
+              <span>📝 待核准記憶學習 Diff 提案 (<span id="pendingProposalsCount">0</span>)</span>
+              <button id="btnApproveAllProposals" class="btn btn-primary btn-sm">✅ 全部一鍵核准</button>
+            </h3>
+            <div id="pendingProposalsList" class="gov-list"></div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">
+              <span>↩️ 已套用記憶紀錄 &amp; 原子回退歷史 (<span id="appliedHistoryCount">0</span>)</span>
+              <span class="tag-muted" style="font-weight:500;">點擊回退可精準撤銷單筆規則</span>
+            </h3>
+            <div id="appliedHistoryList" class="gov-list"></div>
+          </div>
+        </div>
+
+        <div class="memory-grid">
+          <div class="card">
+            <h3 class="card-title">
+              <span>✨ SOUL.md（核心人格與無限制規則）</span>
+              <button class="btn btn-primary btn-sm save-mem-btn" data-file="SOUL">💾 儲存 SOUL</button>
+            </h3>
+            <textarea id="memSoul" class="textarea memory-editor"></textarea>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">
+              <span>👤 USER.md（使用者畫像與習慣）</span>
+              <button class="btn btn-primary btn-sm save-mem-btn" data-file="USER">💾 儲存 USER</button>
+            </h3>
+            <textarea id="memUser" class="textarea memory-editor"></textarea>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">
+              <span>🛡️ MEMORY.md（長期經驗與 🔴 鐵律）</span>
+              <button class="btn btn-primary btn-sm save-mem-btn" data-file="MEMORY">💾 儲存 MEMORY</button>
+            </h3>
+            <textarea id="memMemory" class="textarea memory-editor"></textarea>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="/app.js?v=2"></script>
+</body>
+</html>

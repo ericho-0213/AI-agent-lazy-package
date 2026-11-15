@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+outputs/
+logs/
+*.log
+memory/chat_history.json
+memory/image_gallery.json
+memory/antigravity_bridge.md
+memory/context_summary.json
+memory/image_taste.json
+memory/learning_governance.json
+*.lnk
+.DS_Store
+Thumbs.db

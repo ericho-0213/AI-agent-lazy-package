@@ -1,0 +1,16 @@
+{
+  "name": "mini-antigravity-local-agent",
+  "version": "1.0.0",
+  "description": "Mini-Antigravity 本機自主 AI Agent 中樞 (Ollama 本機 LLM + ReAct 工具引擎 + 圖片創建 + 企業專屬工具整合)",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node scripts/verify.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jszip": "^3.10.1"
+  }
+}
