@@ -189,7 +189,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: 'memory_tool',
-    description: 'Hermes 長期記憶管理工具：讀取記憶 (read) 或追加永久筆記至 MEMORY.md / USER.md (append)。',
+    description: 'Hermes 長期記憶管理工具：僅在使用者明確要求「記住、寫入記憶、以後都這樣」時呼叫 append，或要求讀取記憶時呼叫 read。一般問答與數學計算嚴禁呼叫。',
     parameters: {
       type: 'object',
       properties: {
@@ -199,12 +199,56 @@ const TOOL_DEFINITIONS = [
       },
       required: ['action']
     },
-    execute: async (args) => projectTools.memoryTool(args)
+    execute: async (args, ctx) => {
+      if (args && args.action === 'append') {
+        const userMsg = String((ctx && ctx.userMessage) || '');
+        const memoryIntentRe = /(記住|記憶|以後|往後|之後都|一律|習慣|偏好|鐵律|寫入|存起來|備忘|memory|soul|user)/i;
+        if (!memoryIntentRe.test(userMsg)) {
+          return { success: true, skipped: true, message: '單次問答無需寫入長期記憶' };
+        }
+      }
+      return projectTools.memoryTool(args);
+    }
   }
 ];
 
 function getToolByName(name) {
   return TOOL_DEFINITIONS.find((t) => t.name === name);
+}
+
+const TOOL_MATCH_RULES = [
+  { name: 'generate_image', pattern: /畫|生圖|圖片|照片|繪製|創作.*圖|生成.*圖|寫實|視覺|svg|flux|sd|image|draw/i },
+  { name: 'parse_excel_safe', pattern: /excel|xlsx|試算表|台帳|工作表|欄位|\.xls/i },
+  { name: 'query_mes_spc', pattern: /mes|ipqc|spc|cpk|ca|cp|批號|黏度|檢驗|製程|標準差|全距|5LA|Q004/i },
+  { name: 'inspect_aoi_system', pattern: /aoi|kla|覆判|缺陷|晶圓|瑕疵/i },
+  { name: 'query_outlook_safe', pattern: /outlook|郵件|信件|信箱|行事曆|行程|會議|紅旗|mail|calendar/i },
+  { name: 'scan_local_projects', pattern: /專案|巡檢|健康|端口|port|git|vbs|agents\.md/i },
+  { name: 'secondbrain_tool', pattern: /obsidian|secondbrain|第二大腦|筆記|知識庫|專案導航|hub|clippings|lint/i },
+  { name: 'file_ops', pattern: /檔案|目錄|資料夾|讀取|寫入|列出|路徑|桌面|下載|[c-z]:\\|file|folder/i },
+  { name: 'run_powershell', pattern: /powershell|終端機|指令|腳本|診斷|磁碟|記憶體|cpu|process|netstat|cmd/i },
+  { name: 'web_search', pattern: /搜尋|上網|聯網|網路|最新|新聞|網站|google|search|天氣|匯率|股價/i },
+  { name: 'memory_tool', pattern: /記住|記憶|鐵律|習慣|偏好|以後都|往後|memory\.md|soul\.md|user\.md/i }
+];
+
+/**
+ * 智慧工具意圖分流：依使用者指令按需掛載工具 Schema，純對話與數學計算回傳空陣列以極速回應
+ */
+function selectRelevantTools(message, enableTools = true) {
+  if (!enableTools) return [];
+  const msg = String(message || '').trim();
+  if (!msg) return [];
+
+  const pureMathRe = /^(請|幫我|請問)?\s*(計算|算一下|算|算數)?\s*[\d\s+\-*/().%=^×÷,，。？?]+(等於多少|是多少)?\s*[?？]*$/i;
+  const domainKeywordRe = /(檔案|批號|spc|excel|xlsx|aoi)/i;
+  if (pureMathRe.test(msg) && !domainKeywordRe.test(msg)) {
+    return [];
+  }
+
+  const matchedNames = new Set(
+    TOOL_MATCH_RULES.filter((r) => r.pattern.test(msg)).map((r) => r.name)
+  );
+  if (matchedNames.size === 0) return [];
+  return TOOL_DEFINITIONS.filter((t) => matchedNames.has(t.name));
 }
 
 function readHandoffSummary() {
@@ -998,7 +1042,9 @@ async function runAgentTurn({
     }
   }
 
-  const systemPrompt = buildSystemPrompt(enableTools, provider);
+  const activeTools = selectRelevantTools(message, enableTools);
+  const hasActiveTools = activeTools.length > 0;
+  const systemPrompt = buildSystemPrompt(hasActiveTools, provider);
   const messages = [{ role: 'system', content: systemPrompt }];
 
   for (const h of activeHistory.slice(-10)) {
@@ -1010,7 +1056,6 @@ async function runAgentTurn({
 
   const trace = [];
   const generatedImages = [];
-  const activeTools = enableTools ? TOOL_DEFINITIONS : [];
   const translatePromptFn = createPromptTranslator(provider, model);
 
   const MAX_STEPS = 5;
@@ -1034,7 +1079,7 @@ async function runAgentTurn({
       return { name: fn.name, arguments: args };
     }).filter((c) => c.name);
 
-    if (parsedCalls.length === 0 && enableTools) {
+    if (parsedCalls.length === 0 && hasActiveTools) {
       parsedCalls = extractFallbackToolCalls(rawContent);
     }
 
@@ -1057,7 +1102,7 @@ async function runAgentTurn({
         result = { success: false, error: `未知工具: ${call.name}` };
       } else {
         try {
-          result = await toolDef.execute(call.arguments || {}, { translatePromptFn });
+          result = await toolDef.execute(call.arguments || {}, { translatePromptFn, userMessage: message });
         } catch (err) {
           result = { success: false, error: err.message };
         }
@@ -1137,6 +1182,7 @@ async function runAgentTurn({
 module.exports = {
   OLLAMA_BASE,
   TOOL_DEFINITIONS,
+  selectRelevantTools,
   resolveGeminiApiKey,
   estimateTokens,
   computeContextStatus,
