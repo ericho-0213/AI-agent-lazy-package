@@ -10,6 +10,7 @@ memory/antigravity_bridge.md
 memory/context_summary.json
 memory/image_taste.json
 memory/learning_governance.json
+memory/trainer_state.json
 *.lnk
 .DS_Store
 Thumbs.db

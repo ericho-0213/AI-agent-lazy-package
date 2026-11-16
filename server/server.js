@@ -15,6 +15,7 @@ dotenv.config({ path: path.join(BASE_DIR, '.env') });
 const agentCore = require('./agentCore');
 const projectTools = require('./projectTools');
 const imageEngine = require('./imageEngine');
+const ollamaTrainer = require('./ollamaTrainer');
 
 const PORT = Number(process.env.PORT) || 8790;
 const app = express();
@@ -43,15 +44,10 @@ function saveChatHistory(items) {
 
 async function fetchOllamaTags() {
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3000);
-    const resp = await fetch(`${agentCore.OLLAMA_BASE}/api/tags`, { signal: controller.signal });
-    clearTimeout(timer);
-    if (!resp.ok) return { online: false, models: [] };
-    const data = await resp.json();
-    return { online: true, models: Array.isArray(data.models) ? data.models : [] };
+    const status = await agentCore.ensureOllamaRunning();
+    return { online: status.online, host: status.baseUrl, models: status.models || [] };
   } catch {
-    return { online: false, models: [] };
+    return { online: false, host: agentCore.OLLAMA_BASE, models: [] };
   }
 }
 
@@ -181,6 +177,7 @@ app.post('/api/chat/compact', async (req, res) => {
 });
 
 app.post('/api/chat', async (req, res) => {
+  ollamaTrainer.notifyUserActivity();
   try {
     const {
       message,
@@ -246,6 +243,11 @@ app.post('/api/ollama/pull', async (req, res) => {
 
   (async () => {
     try {
+      const ollamaStatus = await agentCore.ensureOllamaRunning();
+      if (!ollamaStatus.online) {
+        pullJobs.set(jobId, { model: modelName, status: 'error', detail: '無法啟動或連線至本機 Ollama', done: true });
+        return;
+      }
       const resp = await fetch(`${agentCore.OLLAMA_BASE}/api/pull`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -596,6 +598,56 @@ app.post('/api/bridge/sync', (req, res) => {
   res.json({ success: true, synced: true, handoffPath });
 });
 
+/**
+ * Ollama 每日自主演練 & ollama調效.md 進度追蹤 API（僅鎖定 Gemini 4 Hydrogen 模型測試）
+ */
+app.get('/api/trainer/status', (req, res) => {
+  try {
+    res.json(ollamaTrainer.getTrainerStatus());
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/trainer/run', async (req, res) => {
+  try {
+    const {
+      testerModel = ollamaTrainer.TESTER_MODEL,
+      batchSize = 30,
+      liveSampleSize = 1,
+      runLiveLlm = false
+    } = req.body || {};
+
+    const result = await ollamaTrainer.runTrainingBatch({
+      testerModel,
+      maxScenarios: Number(batchSize) || 30,
+      liveSampleSize: Number(liveSampleSize) >= 0 ? Number(liveSampleSize) : 1,
+      runLiveLlm: Boolean(runLiveLlm),
+      trigger: 'manual_ui'
+    });
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/trainer/stop', (req, res) => {
+  res.json(ollamaTrainer.stopTrainingRun());
+});
+
+app.get('/api/trainer/playbook', (req, res) => {
+  const isCurriculum = req.query.doc === 'curriculum';
+  res.json({
+    success: true,
+    path: isCurriculum ? ollamaTrainer.CURRICULUM_PATH : ollamaTrainer.PLAYBOOK_PATH,
+    content: isCurriculum ? ollamaTrainer.readCurriculumMarkdown() : ollamaTrainer.readPlaybookMarkdown(),
+    curriculumPath: ollamaTrainer.CURRICULUM_PATH,
+    curriculumContent: ollamaTrainer.readCurriculumMarkdown()
+  });
+});
+
 app.listen(PORT, '127.0.0.1', () => {
   console.log(`[Mini-Antigravity] Web 戰情室已啟動於 http://localhost:${PORT}`);
+  agentCore.ensureOllamaRunning().catch(() => {});
+  ollamaTrainer.startDailyScheduleSupervisor();
 });

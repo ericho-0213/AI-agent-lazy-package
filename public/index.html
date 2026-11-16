@@ -75,6 +75,18 @@
               </select>
               <button class="btn btn-sm" id="btnCompactNow" title="立即將早期對話濃縮為前情提要記憶膠囊，保留最近對話">🗜️ 立即壓縮上下文</button>
             </div>
+
+            <div class="context-gauge-row">
+              <span class="ctx-label">🏋️ Ollama 自主調校進度 (每日 00:00~03:00)：</span>
+              <div class="ctx-bar-track" title="150 道專案經驗矩陣（100% 實機覆蓋 + ≥98% 通過率 + 連續 50 題零修補即自動畢業停機）">
+                <div class="ctx-bar-fill" id="trainerBarFill" style="width:0%;"></div>
+              </div>
+              <span class="ctx-readout" id="trainerGaugeText">載入進度中...</span>
+              <span class="tag-ok" id="trainerModelBadge" title="依規範僅可使用 Gemini 4 Hydrogen 執行測試">主考官模型：Gemini 4 Hydrogen (唯讀鎖定)</span>
+              <button class="btn btn-sm btn-primary" id="btnRunTrainerNow" title="使用 Gemini 4 Hydrogen 測試標準立即試跑一輪並更新 ollama調效.md">⚡ 立即試跑一輪</button>
+              <button class="btn btn-sm btn-danger" id="btnStopTrainerNow" style="display:none;" title="安全暫停演練">🛑 暫停演練</button>
+              <button class="btn btn-sm" id="btnViewPlaybook" title="檢視可攜式調校手冊 ollama調效.md 與 8 大領域進度明細">📘 檢視 ollama調效.md</button>
+            </div>
           </div>
 
           <div id="contextCapsuleBanner" class="context-capsule" style="display:none;"></div>
@@ -374,6 +386,17 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div id="playbookModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card card">
+      <div class="card-title">
+        <span>📘 ollama調效.md &amp; 8 大領域專案熟練度明細</span>
+        <button class="btn btn-sm" id="btnClosePlaybookModal">✖ 關閉</button>
+      </div>
+      <div id="trainerCategoryGrid" class="trainer-cat-grid"></div>
+      <div id="playbookMdPreview" class="md-body playbook-preview">載入中...</div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>

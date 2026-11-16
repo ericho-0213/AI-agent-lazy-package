@@ -456,6 +456,10 @@
     const text = input.value.trim();
     if (!text) return;
 
+    if (/[a-zA-Z]:\\/.test(text) && $('enableToolsChk') && !$('enableToolsChk').checked) {
+      $('enableToolsChk').checked = true;
+    }
+
     input.value = '';
     const btn = $('btnSendChat');
     btn.disabled = true;
@@ -540,6 +544,7 @@
 
   document.querySelectorAll('.quick-prompts .quick-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
+      if ($('enableToolsChk')) $('enableToolsChk').checked = true;
       $('chatInput').value = chip.dataset.prompt;
       sendChat();
     });
@@ -1873,10 +1878,134 @@
     });
   });
 
+  // ==================== Ollama 每日自主演練與 ollama調效.md 追蹤 ====================
+  function renderTrainerStatus(data) {
+    if (!data || !data.success) return;
+    const barEl = $('trainerBarFill');
+    const textEl = $('trainerGaugeText');
+    const runBtn = $('btnRunTrainerNow');
+    const stopBtn = $('btnStopTrainerNow');
+
+    const total = Number(data.totalScenarios) || 150;
+    const covered = Number(data.coveredCount) || 0;
+    const liveCovered = Number(data.liveCoveredCount) || 0;
+    const livePct = Number(data.liveCoveragePct) || 0;
+    const covPct = Number(data.coveragePct) || 0;
+    const passPct = Number(data.passRatePct) || 0;
+    const zeroFix = Number(data.consecutiveZeroFixCount) || 0;
+    const isRunning = Boolean(data.activeRun && data.activeRun.running);
+
+    if (barEl) {
+      barEl.style.width = `${Math.min(100, Math.max(0, covPct))}%`;
+      barEl.className = `ctx-bar-fill${data.graduated ? '' : covPct < 50 ? ' warn' : ''}`;
+    }
+    if (textEl) {
+      const stateTag = data.graduated
+        ? '🎓 已達標畢業（每日排程自動停機）'
+        : isRunning
+          ? `⏳ 演練中 (${data.activeRun.processedInRun || 0}/${data.activeRun.totalInRun || 0})`
+          : '🏃 排程待命 (00:00~03:00)';
+      textEl.textContent = `${covPct}% 規則覆蓋 (${covered}/${total})｜實機 ${liveCovered}/${total} (${livePct}%)｜通過率 ${passPct}%｜連過 ${zeroFix}/50｜${stateTag}`;
+    }
+    if (runBtn) runBtn.disabled = isRunning;
+    if (stopBtn) stopBtn.style.display = isRunning ? 'inline-flex' : 'none';
+
+    const catGrid = $('trainerCategoryGrid');
+    if (catGrid && Array.isArray(data.categoryStats)) {
+      catGrid.innerHTML = data.categoryStats.map((c) => `
+        <div class="trainer-cat-pill">
+          <div style="font-weight:700;color:#7dd3fc;">${c.num}. ${escapeHtml(c.label.replace(/`/g, ''))}</div>
+          <div style="color:#cbd5e1;">覆蓋 ${c.covered}/${c.targetCount}（實機 ${c.liveCovered}）｜通過率 <strong>${c.passRatePct}%</strong></div>
+        </div>
+      `).join('');
+    }
+  }
+
+  async function refreshTrainerStatus() {
+    try {
+      const resp = await fetch('/api/trainer/status');
+      const data = await resp.json();
+      if (data.success) renderTrainerStatus(data);
+    } catch {
+      // ignore
+    }
+  }
+
+  if ($('btnRunTrainerNow')) {
+    $('btnRunTrainerNow').addEventListener('click', async () => {
+      const btn = $('btnRunTrainerNow');
+      btn.disabled = true;
+      btn.textContent = '⚡ Hydrogen 測試演練中...';
+      try {
+        const resp = await fetch('/api/trainer/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            testerModel: 'gemini-4-hydrogen-high',
+            batchSize: 30,
+            liveSampleSize: 1,
+            runLiveLlm: false
+          })
+        });
+        const data = await resp.json();
+        if (!data.success) {
+          showToast(data.error || '演練失敗', true);
+        } else {
+          if (data.status) renderTrainerStatus(data.status);
+          showToast(`✅ Hydrogen 演練完成：測試 ${data.testedCount} 題、通過 ${data.passedCount} 題、自動修補 ${data.healedCount} 題，已同步 ollama調效.md！`);
+        }
+      } catch (err) {
+        showToast(`演練請求失敗: ${err.message}`, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚡ 立即試跑一輪';
+        refreshTrainerStatus();
+      }
+    });
+  }
+
+  if ($('btnStopTrainerNow')) {
+    $('btnStopTrainerNow').addEventListener('click', async () => {
+      const resp = await fetch('/api/trainer/stop', { method: 'POST' });
+      const data = await resp.json();
+      showToast(data.message || '已送出暫停指令');
+      refreshTrainerStatus();
+    });
+  }
+
+  if ($('btnViewPlaybook')) {
+    $('btnViewPlaybook').addEventListener('click', async () => {
+      const modal = $('playbookModal');
+      if (modal) modal.style.display = 'flex';
+      await refreshTrainerStatus();
+      try {
+        const resp = await fetch('/api/trainer/playbook');
+        const data = await resp.json();
+        if (data.success && $('playbookMdPreview')) {
+          $('playbookMdPreview').innerHTML = renderSimpleMarkdown(data.content || '');
+        }
+      } catch (err) {
+        if ($('playbookMdPreview')) $('playbookMdPreview').textContent = `載入失敗: ${err.message}`;
+      }
+    });
+  }
+
+  if ($('btnClosePlaybookModal')) {
+    $('btnClosePlaybookModal').addEventListener('click', () => {
+      if ($('playbookModal')) $('playbookModal').style.display = 'none';
+    });
+  }
+  if ($('playbookModal')) {
+    $('playbookModal').addEventListener('click', (e) => {
+      if (e.target === $('playbookModal')) $('playbookModal').style.display = 'none';
+    });
+  }
+
   // ==================== 初始化 ====================
   refreshStatus();
   loadChatHistory();
   refreshContextStatus();
+  refreshTrainerStatus();
   refreshGallery(true);
   loadMemory();
 })();

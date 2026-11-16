@@ -1,8 +1,18 @@
 # 專案交接與進度追蹤 (handoff.md)
 
-## 最新狀態 (2026-11-15)
-- **目前階段**：Phase 1 ~ Phase 4 建置與專案初始化完成，並通過全端驗證（`node scripts/verify.js` 13/13 通過）
-- **已完成項目**：
+## 最新狀態 (2026-11-16)
+- **目前階段**：Ollama 連線自癒、Windows 路徑工具容錯、每日 `00:00 ~ 03:00` 自主演練與可攜式調校手冊／教材建置完成（全端驗證 `node scripts/verify.js` 13/13 通過）
+- **今日新增完成項目 (2026-11-16)**：
+  - [x] **Ollama 端口衝突自癒與背景拉起 (`ensureOllamaRunning`)**：解決 RealVNC 等程式佔用 `127.0.0.1:11434` 導致 `WSAEACCES` 與 `fetch failed` 問題；依序探測 `[11434, 11435, 11436, 11440, 18434]` 自動切換可用埠並背景靜默啟動 `ollama.exe serve`（實測自動切換至 `11435`）。
+  - [x] **Windows 路徑工具呼叫容錯與防吞字修復**：`callOllamaChat()` 移除原生 `payload.tools`（改由 `buildSystemPrompt` 動態注入當次篩選工具 Schema 與 `<tool_call>` 協定），避免 Ollama Go 層解析 Windows 反斜線路徑失敗吞成空字串；實作 `tryParseJsonWithBackslashRepair()`、`parseLooseToolJson()`、`normalizeToolCallObj()`、`inferDeterministicToolCall()` 與 `formatFallbackReplyFromResults()`，並於 `fileOps()` 自動過濾 `~$` 暫存鎖定檔。
+  - [x] **建立兩份可攜式調校資產**：
+    - `ollama調效.md`：七大實戰調校配方、Hydrogen 模型鎖定規範、150 題熟練度儀表板與演化日誌。
+    - `離線AI_Agent調效考題教材.md`：Few-Shot 正反例教材＋8 大領域 150 道實戰考題與驗收準則（供未來導入其他離線 AI Agent 調校使用）。
+  - [x] **建置每日 `00:00 ~ 03:00` 自主演練與自癒引擎 (`server/ollamaTrainer.js`、`scripts/daily_ollama_trainer.js`)**：
+    - 不依賴 Antigravity `Automations`，內建於本地伺服器排程器（設定自 `2026-11-17` 起每日 `00:00 ~ 03:00` 自動執行）。
+    - 嚴格鎖定僅可使用 `Gemini 4 Hydrogen (gemini-4-hydrogen-high)` 作為測試模型；具備使用者對話讓道機制、熱更新 `memory/ollama_auto_tuning.json`，以及「100% 覆蓋＋≥98% 通過率＋連續 50 題零修補」自動畢業停機機制。
+    - 戰情室新增演練進度條、`⚡ 立即試跑一輪` 與 `📘 檢視 ollama調效.md` 檢視視窗。
+- **先前已完成項目 (2026-11-15)**：
   - [x] 建立 `D:\OllamaModels` 模型存放目錄並配置使用者環境變數 `OLLAMA_MODELS`。
   - [x] 安裝 Ollama (`v0.40.16`，CPU + Vulkan 精簡執行環境，42 個檔案於 `%LOCALAPPDATA%\Programs\Ollama`）。
   - [x] 完成 `scripts/fast_pull_ollama.ps1` 4 連線平行 HTTP Range 斷點續傳與完整檔案 SHA-256 嚴格校驗，正式下載並註冊完整版 `qwen2.5:3b`（`1,929,912,432 bytes` / `3.1B` Q4_K_M / `tools` 支援）至 `D:\OllamaModels`（同時保留輕量極速 `qwen2.5:0.5b` / `494.03M` 供低延遲測試）。
@@ -23,7 +33,8 @@
   - [x] 完成 **智慧工具意圖分流 (`selectRelevantTools`) 與 `memory_tool` 寫入防呆優化**：於 `server/agentCore.js` 實作依指令意圖按需掛載工具 Schema（純算數與一般對話回傳 `[]`，不再注入 11 個工具 Schema 與 `<tool_call>` 提示），並於 `memory_tool` 攔截無記憶意圖之 `append` 呼叫，將 `請計算1+98` 回應時間由 `106.2 秒` 降至預熱後 `1.4 秒`（`node scripts/verify.js` `13/13` 通過）。
 
 ## 下一步待辦 (Next Steps)
-- [ ] **另一台電腦實機驗證**：於目標 Windows 電腦執行 `git clone https://github.com/ericho-0213/AI-agent-lazy-package.git` 後執行 `.\scripts\setup_new_pc.ps1`，驗證跨機從零部署與 `node scripts/verify.js` 結果。
+- [ ] **檢視 `2026-11-17 00:00 ~ 03:00` 首輪自動演練戰報**：開機並確認 [`ollama調效.md`](./ollama調效.md) 與 [`離線AI_Agent調效考題教材.md`](./離線AI_Agent調效考題教材.md) 之實機覆蓋與自動修補進度。
+- [ ] **另一台電腦實機驗證**：於目標 Windows 電腦執行 `git clone https://github.com/ericho-0213/AI-agent-lazy-package.git` 後執行 `.\scripts\setup_new_pc.ps1`，並可搭配 `ollama調效.md` 一鍵調校。
 - [ ] **選配擴充進階模型**：依需求透過 `scripts/fast_pull_ollama.ps1` 或戰情室中控台拉取 `qwen2.5:7b`、`deepseek-r1:7b` 等模型。
 - [ ] **依現場需求擴充專案工具**：於 `server/projectTools.js` 擴充其他系統之自動化數據分析或報表工作流。
 

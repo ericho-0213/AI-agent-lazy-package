@@ -6,10 +6,135 @@
  */
 const fs = require('node:fs');
 const path = require('node:path');
+const net = require('node:net');
+const os = require('node:os');
+const { spawn } = require('node:child_process');
 const projectTools = require('./projectTools');
 const imageEngine = require('./imageEngine');
 
-const OLLAMA_BASE = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
+const OLLAMA_CANDIDATE_PORTS = [11434, 11435, 11436, 11440, 18434];
+let activeOllamaBase = process.env.OLLAMA_HOST
+  ? (process.env.OLLAMA_HOST.startsWith('http') ? process.env.OLLAMA_HOST : `http://${process.env.OLLAMA_HOST}`)
+  : 'http://127.0.0.1:11434';
+let startingPromise = null;
+
+async function probeOllamaBase(baseUrl, timeoutMs = 1500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(`${baseUrl}/api/tags`, { signal: controller.signal });
+    if (!resp.ok) return { online: false, baseUrl, models: [] };
+    const data = await resp.json();
+    if (!data || !Array.isArray(data.models)) {
+      return { online: false, baseUrl, models: [] };
+    }
+    return { online: true, baseUrl, models: data.models };
+  } catch {
+    return { online: false, baseUrl, models: [] };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function canBindPort(port) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (ok) => {
+      if (settled) return;
+      settled = true;
+      resolve(ok);
+    };
+    const srv = net.createServer();
+    srv.once('error', () => done(false));
+    srv.once('listening', () => {
+      srv.close(() => done(true));
+    });
+    try {
+      srv.listen(port, '127.0.0.1');
+    } catch {
+      done(false);
+    }
+  });
+}
+
+function findOllamaExecutable() {
+  const candidates = [];
+  if (process.env.LOCALAPPDATA) {
+    candidates.push(path.join(process.env.LOCALAPPDATA, 'Programs', 'Ollama', 'ollama.exe'));
+  }
+  candidates.push(path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'Ollama', 'ollama.exe'));
+  candidates.push('C:\\Program Files\\Ollama\\ollama.exe');
+  for (const exePath of candidates) {
+    if (exePath && fs.existsSync(exePath)) return exePath;
+  }
+  return '';
+}
+
+async function ensureOllamaRunning() {
+  if (startingPromise) return startingPromise;
+
+  const current = await probeOllamaBase(activeOllamaBase);
+  if (current.online) return current;
+
+  startingPromise = (async () => {
+    try {
+      for (const port of OLLAMA_CANDIDATE_PORTS) {
+        const candidateUrl = `http://127.0.0.1:${port}`;
+        if (candidateUrl === activeOllamaBase) continue;
+        const probe = await probeOllamaBase(candidateUrl, 800);
+        if (probe.online) {
+          activeOllamaBase = candidateUrl;
+          return probe;
+        }
+      }
+
+      const ollamaExe = findOllamaExecutable();
+      if (!ollamaExe) {
+        return { online: false, models: [], baseUrl: activeOllamaBase };
+      }
+
+      let freePort = null;
+      for (const port of OLLAMA_CANDIDATE_PORTS) {
+        if (await canBindPort(port)) {
+          freePort = port;
+          break;
+        }
+      }
+      if (!freePort) {
+        return { online: false, models: [], baseUrl: activeOllamaBase };
+      }
+
+      const modelsDir = process.env.OLLAMA_MODELS || path.join(path.parse(projectTools.BASE_DIR).root || 'D:\\', 'OllamaModels');
+      const targetUrl = `http://127.0.0.1:${freePort}`;
+      const child = spawn(ollamaExe, ['serve'], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+        env: {
+          ...process.env,
+          OLLAMA_HOST: `127.0.0.1:${freePort}`,
+          OLLAMA_MODELS: modelsDir
+        }
+      });
+      child.unref();
+
+      for (let i = 0; i < 15; i++) {
+        await new Promise((r) => setTimeout(r, 400));
+        const probe = await probeOllamaBase(targetUrl, 1000);
+        if (probe.online) {
+          activeOllamaBase = targetUrl;
+          return probe;
+        }
+      }
+
+      return { online: false, models: [], baseUrl: activeOllamaBase };
+    } finally {
+      startingPromise = null;
+    }
+  })();
+
+  return startingPromise;
+}
 
 /**
  * 安全讀取 Gemini API 金鑰（僅於伺服器端記憶中使用，絕不外洩至前端或 API 回傳）
@@ -230,13 +355,84 @@ const TOOL_MATCH_RULES = [
   { name: 'memory_tool', pattern: /記住|記憶|鐵律|習慣|偏好|以後都|往後|memory\.md|soul\.md|user\.md/i }
 ];
 
+const AUTO_TUNING_PATH = path.join(projectTools.MEMORY_DIR, 'ollama_auto_tuning.json');
+
+const DEFAULT_AUTO_TUNING = {
+  updatedAt: null,
+  customKeywords: {
+    file_ops: ['資料夾', '目錄清單'],
+    parse_excel_safe: ['月報', '良率表']
+  },
+  toolAliases: {
+    list: 'file_ops',
+    dir: 'file_ops',
+    ls: 'file_ops',
+    read: 'file_ops',
+    excel: 'parse_excel_safe',
+    spc: 'query_mes_spc'
+  },
+  argAliases: {
+    path: 'targetPath',
+    dir: 'targetPath',
+    folder: 'targetPath',
+    directory: 'targetPath',
+    sheet: 'sheetName',
+    lot: 'lotNo'
+  },
+  promptRules: [
+    '列出資料夾或檔案時，請直接使用工具回傳的真實檔名，嚴禁自行在檔名前方加上 ~$ 符號。',
+    '回覆請全程使用繁體中文（Taiwan），嚴禁夾雜簡體字（如「请告诉我」應寫為「請告訴我」）。'
+  ]
+};
+
+/**
+ * 讀取動態自我調校規則庫（memory/ollama_auto_tuning.json），支援演練引擎即時熱更新
+ */
+function loadAutoTuning() {
+  if (!fs.existsSync(AUTO_TUNING_PATH)) {
+    return JSON.parse(JSON.stringify(DEFAULT_AUTO_TUNING));
+  }
+  try {
+    const raw = JSON.parse(fs.readFileSync(AUTO_TUNING_PATH, 'utf8'));
+    return {
+      updatedAt: raw.updatedAt || null,
+      customKeywords: { ...DEFAULT_AUTO_TUNING.customKeywords, ...(raw.customKeywords || {}) },
+      toolAliases: { ...DEFAULT_AUTO_TUNING.toolAliases, ...(raw.toolAliases || {}) },
+      argAliases: { ...DEFAULT_AUTO_TUNING.argAliases, ...(raw.argAliases || {}) },
+      promptRules: Array.isArray(raw.promptRules) && raw.promptRules.length > 0
+        ? raw.promptRules
+        : [...DEFAULT_AUTO_TUNING.promptRules]
+    };
+  } catch {
+    return JSON.parse(JSON.stringify(DEFAULT_AUTO_TUNING));
+  }
+}
+
+/**
+ * 寫入動態自我調校規則庫（memory/ollama_auto_tuning.json）
+ */
+function saveAutoTuning(nextTuning) {
+  fs.mkdirSync(path.dirname(AUTO_TUNING_PATH), { recursive: true });
+  const payload = {
+    updatedAt: new Date().toISOString(),
+    customKeywords: nextTuning.customKeywords || {},
+    toolAliases: nextTuning.toolAliases || {},
+    argAliases: nextTuning.argAliases || {},
+    promptRules: Array.isArray(nextTuning.promptRules) ? nextTuning.promptRules : []
+  };
+  fs.writeFileSync(AUTO_TUNING_PATH, JSON.stringify(payload, null, 2), 'utf8');
+  return payload;
+}
+
 /**
  * 智慧工具意圖分流：依使用者指令按需掛載工具 Schema，純對話與數學計算回傳空陣列以極速回應
  */
 function selectRelevantTools(message, enableTools = true) {
-  if (!enableTools) return [];
   const msg = String(message || '').trim();
   if (!msg) return [];
+
+  const hasWindowsPath = /[a-zA-Z]:\\/.test(msg);
+  if (!enableTools && !hasWindowsPath) return [];
 
   const pureMathRe = /^(請|幫我|請問)?\s*(計算|算一下|算|算數)?\s*[\d\s+\-*/().%=^×÷,，。？?]+(等於多少|是多少)?\s*[?？]*$/i;
   const domainKeywordRe = /(檔案|批號|spc|excel|xlsx|aoi)/i;
@@ -247,6 +443,22 @@ function selectRelevantTools(message, enableTools = true) {
   const matchedNames = new Set(
     TOOL_MATCH_RULES.filter((r) => r.pattern.test(msg)).map((r) => r.name)
   );
+
+  const tuning = loadAutoTuning();
+  const msgLower = msg.toLowerCase();
+  for (const [toolName, keywords] of Object.entries(tuning.customKeywords || {})) {
+    if (!Array.isArray(keywords)) continue;
+    if (keywords.some((kw) => kw && msgLower.includes(String(kw).toLowerCase()))) {
+      matchedNames.add(toolName);
+    }
+  }
+
+  if (hasWindowsPath) {
+    matchedNames.add('file_ops');
+    if (/\.(xlsx|xlsm|xls)/i.test(msg)) {
+      matchedNames.add('parse_excel_safe');
+    }
+  }
   if (matchedNames.size === 0) return [];
   return TOOL_DEFINITIONS.filter((t) => matchedNames.has(t.name));
 }
@@ -303,32 +515,38 @@ function estimateTokens(text) {
   return Math.ceil(cjkCount * 0.85 + nonCjkCount * 0.3);
 }
 
-function buildSystemPrompt(enableTools = true, provider = 'ollama') {
+function buildSystemPrompt(activeToolsOrBool = true, provider = 'ollama') {
   const mem = projectTools.readMemoryFiles();
   const handoffSnippet = readHandoffSummary();
   const ctxState = projectTools.readContextState();
-  const toolMenu = TOOL_DEFINITIONS.map((t) => `- ${t.name}: ${t.description}`).join('\n');
+  const tuning = loadAutoTuning();
+
+  const activeTools = Array.isArray(activeToolsOrBool)
+    ? activeToolsOrBool
+    : (activeToolsOrBool
+        ? (provider === 'ollama' ? TOOL_DEFINITIONS.slice(0, 1) : TOOL_DEFINITIONS)
+        : []);
 
   let toolInstructions = '';
-  if (enableTools) {
-    if (provider === 'ollama') {
-      toolInstructions = `\n\n## 工具呼叫協定 (極重要)
-當你需要取得本機實證資料、生圖、計算 SPC、查專案或上網搜尋時，請直接呼叫原生工具（或輸出 <tool_call>{"name": "工具名稱", "arguments": {參數物件}}</tool_call>）。
-注意：
-1. 工具未回傳前，嚴禁編造任何數據或路徑。
-2. 取得工具結果後，再用繁體中文（Taiwan）精簡清楚地向「您」彙報結果。`;
-    } else {
-      toolInstructions = `\n\n## 可用自主工具清單
+  if (activeTools.length > 0) {
+    const toolMenu = activeTools
+      .map((t) => `- ${t.name}: ${t.description}\n  參數 Schema: ${JSON.stringify((t.parameters && t.parameters.properties) || {})}`)
+      .join('\n');
+
+    toolInstructions = `\n\n## 可用自主工具清單
 ${toolMenu}
 
 ## 工具呼叫協定 (極重要)
-當你需要取得本機實證資料、生圖、計算 SPC、查專案或上網搜尋時，請直接呼叫工具（使用原生 function call，或輸出以下精確格式）：
-<tool_call>{"name": "工具名稱", "arguments": {參數物件}}</tool_call>
+當你需要取得本機實證資料、查看資料夾、讀取檔案、生圖或計算 SPC 時，請直接輸出以下格式呼叫工具（Windows 路徑請寫雙反斜線 \\\\）：
+<tool_call>{"name": "工具名稱", "arguments": {"參數名": "參數值"}}</tool_call>
 注意：
-1. 工具未回傳前，嚴禁編造任何數據或路徑。
+1. 工具未回傳前，嚴禁編造任何數據或檔案清單。
 2. 取得工具結果後，再用繁體中文（Taiwan）精簡清楚地向「您」彙報結果。`;
-    }
   }
+
+  const tuningSection = Array.isArray(tuning.promptRules) && tuning.promptRules.length > 0
+    ? `\n\n## 本機調校附加守則\n${tuning.promptRules.map((r) => `- ${r}`).join('\n')}`
+    : '';
 
   const taste = projectTools.readImageTaste();
   const tasteLine = taste.summaryText ? `\n- 近期生圖視覺審美偏好（自主學習）：${taste.summaryText}` : '';
@@ -336,7 +554,7 @@ ${toolMenu}
   const rollingSection = ctxState.rollingSummary
     ? `\n\n## 📦 對話前情提要（自動壓縮記憶膠囊）\n${ctxState.rollingSummary}`
     : '';
-  return `${mem.SOUL}\n\n## 使用者背景\n${mem.USER}${tasteLine}\n\n## 長期記憶與鐵律\n${mem.MEMORY}${handoffSection}${rollingSection}${toolInstructions}`;
+  return `${mem.SOUL}\n\n## 使用者背景\n${mem.USER}${tasteLine}\n\n## 長期記憶與鐵律\n${mem.MEMORY}${tuningSection}${handoffSection}${rollingSection}${toolInstructions}`;
 }
 
 /**
@@ -381,34 +599,138 @@ function computeContextStatus({ history = [], provider = 'ollama', enableTools =
   };
 }
 
+const LIST_ACTION_ALIASES = new Set(['list', 'ls', 'dir', 'list_dir', 'list_files']);
+const READ_ACTION_ALIASES = new Set(['read', 'read_file', 'cat', 'open']);
+
 /**
- * 解析文本中可能出現的 <tool_call>...</tool_call> 或 JSON 工具呼叫
+ * 標準化工具名稱與參數（相容 3B 模型常見別名與別稱欄位）
+ */
+function normalizeToolCallObj(rawName, rawArgs = {}) {
+  const args = rawArgs && typeof rawArgs === 'object' ? { ...rawArgs } : {};
+  let name = String(rawName || '').trim();
+  const lower = name.toLowerCase();
+  const tuning = loadAutoTuning();
+
+  if (tuning.toolAliases && tuning.toolAliases[lower]) {
+    if (LIST_ACTION_ALIASES.has(lower)) args.action = args.action || 'list';
+    if (READ_ACTION_ALIASES.has(lower)) args.action = args.action || 'read';
+    name = tuning.toolAliases[lower];
+  } else if (LIST_ACTION_ALIASES.has(lower)) {
+    name = 'file_ops';
+    args.action = 'list';
+  } else if (READ_ACTION_ALIASES.has(lower)) {
+    name = 'file_ops';
+    args.action = 'read';
+  }
+
+  for (const [aliasKey, targetKey] of Object.entries(tuning.argAliases || {})) {
+    if (args[aliasKey] !== undefined && args[targetKey] === undefined) {
+      args[targetKey] = args[aliasKey];
+    }
+  }
+
+  if (name === 'file_ops') {
+    args.targetPath = args.targetPath || args.path || args.filePath || args.dir || args.directory || args.folder || '.';
+    args.action = ['list', 'read', 'write'].includes(args.action) ? args.action : 'list';
+  } else if (name === 'parse_excel_safe') {
+    args.filePath = args.filePath || args.targetPath || args.path || '';
+  }
+
+  if (!getToolByName(name)) return null;
+  return { name, arguments: args };
+}
+
+function tryParseJsonWithBackslashRepair(rawStr) {
+  const s = String(rawStr || '').trim();
+  if (!s) return null;
+  try {
+    return JSON.parse(s);
+  } catch {
+    const repaired = s
+      .replace(/"([a-zA-Z]:[^"\r\n]*)"/g, (_, p) => `"${p.replace(/(?<!\\)\\(?!\\)/g, '\\\\')}"`)
+      .replace(/\\(?![\\"/bfnrtu])/g, '\\\\');
+    try {
+      return JSON.parse(repaired);
+    } catch {
+      return null;
+    }
+  }
+}
+
+/**
+ * 容錯解析模型輸出的工具呼叫（支援標準 JSON、未跳脫 Windows 路徑反斜線及寬鬆鍵值）
+ */
+function parseLooseToolJson(rawStr) {
+  const text = String(rawStr || '').trim();
+  if (!text) return null;
+
+  const parsed = tryParseJsonWithBackslashRepair(text);
+  if (parsed && parsed.name) {
+    return normalizeToolCallObj(parsed.name, parsed.arguments || parsed.args || {});
+  }
+
+  const nameMatch = text.match(/["']?name["']?\s*:\s*["']?([a-zA-Z0-9_]+)["']?/);
+  if (!nameMatch) return null;
+
+  const args = {};
+  const argsBlockMatch = text.match(/["']?(?:arguments|args)["']?\s*:\s*(\{[\s\S]*\})/);
+  if (argsBlockMatch) {
+    const candidate = argsBlockMatch[1].trim();
+    const parsedArgs = tryParseJsonWithBackslashRepair(candidate)
+      || tryParseJsonWithBackslashRepair(candidate.replace(/\}\s*$/, ''));
+    if (parsedArgs && typeof parsedArgs === 'object') {
+      Object.assign(args, parsedArgs);
+    }
+  }
+
+  const extractField = (fieldNames) => {
+    for (const key of fieldNames) {
+      const quoted = text.match(new RegExp(`["']?${key}["']?\\s*:\\s*"([^"\\r\\n]+)"`));
+      if (quoted) return quoted[1].replace(/\\\\/g, '\\');
+      const singleQuoted = text.match(new RegExp(`["']?${key}["']?\\s*:\\s*'([^'\\r\\n]+)'`));
+      if (singleQuoted) return singleQuoted[1].replace(/\\\\/g, '\\');
+      const unquoted = text.match(new RegExp(`["']?${key}["']?\\s*:\\s*([^,}\\r\\n\\]]+)`));
+      if (unquoted) return unquoted[1].trim();
+    }
+    return '';
+  };
+
+  if (!args.targetPath) args.targetPath = extractField(['targetPath', 'path', 'dir', 'directory', 'folder']);
+  if (!args.filePath) args.filePath = extractField(['filePath']);
+  if (!args.action) args.action = extractField(['action']);
+  if (!args.lotNo) args.lotNo = extractField(['lotNo']);
+  if (!args.query) args.query = extractField(['query']);
+  if (!args.command) args.command = extractField(['command']);
+
+  for (const k of Object.keys(args)) {
+    if (!args[k]) delete args[k];
+  }
+  return normalizeToolCallObj(nameMatch[1], args);
+}
+
+/**
+ * 解析文本中可能出現的 <tool_call>...</tool_call>（含未閉合標籤）、中括號或 JSON 工具呼叫
  */
 function extractFallbackToolCalls(text) {
   if (!text) return [];
   const calls = [];
-  for (const m of text.matchAll(/<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/gi)) {
-    try {
-      const obj = JSON.parse(m[1]);
-      if (obj && obj.name && getToolByName(obj.name)) {
-        calls.push({ name: obj.name, arguments: obj.arguments || obj.args || {} });
-      }
-    } catch {
-      // ignore malformed JSON
-    }
+
+  for (const m of text.matchAll(/<tool_call>\s*([\s\S]*?)(?:<\/tool_call>|$)/gi)) {
+    const call = parseLooseToolJson(m[1]);
+    if (call) calls.push(call);
+  }
+  if (calls.length > 0) return calls;
+
+  for (const m of text.matchAll(/\[([a-zA-Z0-9_]+)\s*:\s*(\{[\s\S]*?\})\s*\]/gi)) {
+    const call = parseLooseToolJson(`name: ${m[1]}, arguments: ${m[2]}`);
+    if (call) calls.push(call);
   }
   if (calls.length > 0) return calls;
 
   // 若模型將 JSON 包在 ```json ... ``` 中且僅有單一工具呼叫
-  for (const m of text.matchAll(/```(?:json)?\s*(\{[\s\S]*?"name"\s*:\s*"[a-zA-Z0-9_]+"[\s\S]*?\})\s*```/gi)) {
-    try {
-      const obj = JSON.parse(m[1]);
-      if (obj && obj.name && getToolByName(obj.name)) {
-        calls.push({ name: obj.name, arguments: obj.arguments || obj.args || {} });
-      }
-    } catch {
-      // ignore
-    }
+  for (const m of text.matchAll(/```(?:json)?\s*(\{[\s\S]*?["']?name["']?\s*:[\s\S]*?\})\s*```/gi)) {
+    const call = parseLooseToolJson(m[1]);
+    if (call) calls.push(call);
   }
   return calls;
 }
@@ -416,11 +738,17 @@ function extractFallbackToolCalls(text) {
 function cleanDisplayText(text) {
   if (!text) return '';
   return text
-    .replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '')
+    .replace(/<tool_call>[\s\S]*?(?:<\/tool_call>|$)/gi, '')
+    .replace(/\[(?:file_ops|parse_excel_safe|query_mes_spc|inspect_aoi_system|query_outlook_safe|scan_local_projects|secondbrain_tool|run_powershell|web_search|memory_tool|generate_image)\s*:[\s\S]*?\]/gi, '')
     .trim();
 }
 
 async function callOllamaChat({ model, messages, tools, timeoutMs = 300000 }) {
+  const ollamaStatus = await ensureOllamaRunning();
+  if (!ollamaStatus.online) {
+    throw new Error(`無法啟動或連線至本機 Ollama (${activeOllamaBase})，請確認 Ollama 是否已安裝或本機端口是否可用`);
+  }
+
   const ctxState = projectTools.readContextState();
   const payload = {
     model,
@@ -432,26 +760,24 @@ async function callOllamaChat({ model, messages, tools, timeoutMs = 300000 }) {
       num_ctx: ctxState.budgetTokens || 4096
     }
   };
-  if (tools && tools.length > 0) {
-    payload.tools = tools.map((t) => ({
-      type: 'function',
-      function: {
-        name: t.name,
-        description: t.description,
-        parameters: t.parameters
-      }
-    }));
-  }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const resp = await fetch(`${OLLAMA_BASE}/api/chat`, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    let resp;
+    try {
+      resp = await fetch(`${activeOllamaBase}/api/chat`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        throw new Error(`本機 Ollama (${activeOllamaBase}) 回應逾時 (${Math.round(timeoutMs / 1000)}s)`);
+      }
+      throw new Error(`無法連線至本機 Ollama (${activeOllamaBase})：${err.message}`);
+    }
 
     if (!resp.ok) {
       const errText = await resp.text();
@@ -1009,6 +1335,56 @@ async function compactChatHistory({
 }
 
 /**
+ * 當小模型在首輪未輸出有效工具呼叫，但使用者明確指定 Windows 本機路徑時，確定性補救分派對應工具
+ */
+function inferDeterministicToolCall(message, activeTools) {
+  if (!Array.isArray(activeTools) || activeTools.length === 0) return [];
+  const pathMatch = String(message || '').match(/([a-zA-Z]:\\[^\s"'`<>|，,。？?]+)/);
+  if (!pathMatch) return [];
+
+  const targetPath = pathMatch[1];
+  if (/\.(xlsx|xlsm|xls)$/i.test(targetPath) && activeTools.some((t) => t.name === 'parse_excel_safe')) {
+    return [{ name: 'parse_excel_safe', arguments: { filePath: targetPath } }];
+  }
+  if (activeTools.some((t) => t.name === 'file_ops')) {
+    return [{ name: 'file_ops', arguments: { action: 'list', targetPath } }];
+  }
+  return [];
+}
+
+/**
+ * 若工具已執行完畢但模型未輸出最終文字，直接由工具實證結果產生繁體中文摘要
+ */
+function formatFallbackReplyFromResults(executedResults) {
+  if (!Array.isArray(executedResults) || executedResults.length === 0) return '';
+  const last = executedResults[executedResults.length - 1];
+  const { toolName, result } = last;
+  if (!result) return '';
+  if (result.success === false) {
+    return `⚠️ 工具 \`${toolName}\` 執行未成功：${result.error || '未知錯誤'}`;
+  }
+  if (toolName === 'file_ops' && result.isDirectory && Array.isArray(result.entries)) {
+    const dirs = result.entries.filter((e) => e.type === 'dir');
+    const files = result.entries.filter((e) => e.type !== 'dir');
+    const lines = [`📂 路徑 \`${result.path}\` 共有 ${dirs.length} 個資料夾、${files.length} 個檔案：`];
+    if (dirs.length > 0) {
+      lines.push('', '**📁 資料夾**：');
+      dirs.forEach((d) => lines.push(`- 📁 ${d.name}`));
+    }
+    if (files.length > 0) {
+      lines.push('', '**📄 檔案**：');
+      files.forEach((f) => lines.push(`- 📄 ${f.name}`));
+    }
+    if (dirs.length === 0 && files.length === 0) {
+      lines.push('（此資料夾目前為空）');
+    }
+    return lines.join('\n');
+  }
+  const preview = JSON.stringify(result, null, 2).slice(0, 1500);
+  return `已透過工具 \`${toolName}\` 取得以下結果：\n\`\`\`json\n${preview}\n\`\`\``;
+}
+
+/**
  * 執行完整 ReAct Agent 對話迴圈（含安全檢查點 80% 自動摘要壓縮）
  */
 async function runAgentTurn({
@@ -1044,7 +1420,7 @@ async function runAgentTurn({
 
   const activeTools = selectRelevantTools(message, enableTools);
   const hasActiveTools = activeTools.length > 0;
-  const systemPrompt = buildSystemPrompt(hasActiveTools, provider);
+  const systemPrompt = buildSystemPrompt(activeTools, provider);
   const messages = [{ role: 'system', content: systemPrompt }];
 
   for (const h of activeHistory.slice(-10)) {
@@ -1055,6 +1431,7 @@ async function runAgentTurn({
   messages.push({ role: 'user', content: String(message || '') });
 
   const trace = [];
+  const executedResults = [];
   const generatedImages = [];
   const translatePromptFn = createPromptTranslator(provider, model);
 
@@ -1076,11 +1453,15 @@ async function runAgentTurn({
       if (typeof args === 'string') {
         try { args = JSON.parse(args); } catch { args = {}; }
       }
-      return { name: fn.name, arguments: args };
-    }).filter((c) => c.name);
+      return normalizeToolCallObj(fn.name, args) || { name: fn.name, arguments: args };
+    }).filter((c) => c && c.name);
 
     if (parsedCalls.length === 0 && hasActiveTools) {
       parsedCalls = extractFallbackToolCalls(rawContent);
+    }
+
+    if (step === 1 && parsedCalls.length === 0 && hasActiveTools) {
+      parsedCalls = inferDeterministicToolCall(message, activeTools);
     }
 
     if (parsedCalls.length === 0) {
@@ -1090,7 +1471,7 @@ async function runAgentTurn({
 
     messages.push({
       role: 'assistant',
-      content: rawContent,
+      content: rawContent || `<tool_call>${JSON.stringify(parsedCalls[0])}</tool_call>`,
       tool_calls: nativeCalls.length ? nativeCalls : undefined
     });
 
@@ -1117,6 +1498,8 @@ async function runAgentTurn({
         });
       }
 
+      executedResults.push({ toolName: call.name, args: call.arguments || {}, result });
+
       const serialized = JSON.stringify(result);
       const trimmed = serialized.length > 6000 ? `${serialized.slice(0, 6000)}...(truncated)` : serialized;
 
@@ -1140,6 +1523,10 @@ async function runAgentTurn({
     if (step === MAX_STEPS) {
       finalReply = cleanDisplayText(rawContent) || '已完成多步驟工具呼叫並彙整上述結果。';
     }
+  }
+
+  if (!finalReply && executedResults.length > 0) {
+    finalReply = formatFallbackReplyFromResults(executedResults);
   }
 
   const finalOutput = finalReply || '（模型未回傳文字內容，請查看上方工具執行結果）';
@@ -1180,9 +1567,17 @@ async function runAgentTurn({
 }
 
 module.exports = {
-  OLLAMA_BASE,
+  get OLLAMA_BASE() {
+    return activeOllamaBase;
+  },
+  getOllamaBase: () => activeOllamaBase,
+  ensureOllamaRunning,
+  AUTO_TUNING_PATH,
+  loadAutoTuning,
+  saveAutoTuning,
   TOOL_DEFINITIONS,
   selectRelevantTools,
+  extractFallbackToolCalls,
   resolveGeminiApiKey,
   estimateTokens,
   computeContextStatus,

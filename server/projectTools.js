@@ -712,7 +712,7 @@ async function fileOps({ action = 'list', targetPath = '.', content = '' } = {})
     const st = fs.statSync(resolved);
     if (st.isDirectory()) {
       const entries = fs.readdirSync(resolved, { withFileTypes: true })
-        .filter((e) => !e.name.startsWith('.env') && e.name !== 'node_modules' && e.name !== '.venv')
+        .filter((e) => !e.name.startsWith('.env') && !e.name.startsWith('~$') && e.name !== 'node_modules' && e.name !== '.venv')
         .slice(0, 120)
         .map((e) => ({ name: e.name, type: e.isDirectory() ? 'dir' : 'file' }));
       return { success: true, isDirectory: true, path: resolved, matchedBy, entries };

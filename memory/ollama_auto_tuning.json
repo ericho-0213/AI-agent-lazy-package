@@ -1,0 +1,36 @@
+{
+  "updatedAt": "2026-11-16T09:25:00.000Z",
+  "customKeywords": {
+    "file_ops": [
+      "資料夾",
+      "目錄清單",
+      "底下有哪些",
+      "裡面有什麼"
+    ],
+    "parse_excel_safe": [
+      "月報",
+      "良率表",
+      "工作表內容"
+    ]
+  },
+  "toolAliases": {
+    "list": "file_ops",
+    "dir": "file_ops",
+    "ls": "file_ops",
+    "read": "file_ops",
+    "excel": "parse_excel_safe",
+    "spc": "query_mes_spc"
+  },
+  "argAliases": {
+    "path": "targetPath",
+    "dir": "targetPath",
+    "folder": "targetPath",
+    "directory": "targetPath",
+    "sheet": "sheetName",
+    "lot": "lotNo"
+  },
+  "promptRules": [
+    "列出資料夾或檔案時，請直接使用工具回傳的真實檔名，嚴禁自行在檔名前方加上 ~$ 符號。",
+    "回覆請全程使用繁體中文（Taiwan），嚴禁夾雜簡體字（如「请告诉我」應寫為「請告訴我」）。"
+  ]
+}
