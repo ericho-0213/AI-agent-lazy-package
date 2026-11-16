@@ -1,8 +1,13 @@
 # 專案交接與進度追蹤 (handoff.md)
 
-## 最新狀態 (2026-11-16)
-- **目前階段**：Ollama 連線自癒、Windows 路徑工具容錯、每日 `00:00 ~ 03:00` 自主演練與可攜式調校手冊／教材建置完成（全端驗證 `node scripts/verify.js` 13/13 通過）
-- **今日新增完成項目 (2026-11-16)**：
+## 最新狀態 (2026-11-17)
+- **目前階段**：完成首輪夜間 150 題全實機演練（覆蓋 `150/150`、通過率由 `40%` 升至 `61%`），並已完成全部失敗根因修復與「單輪直達加速」升級（`node scripts/verify.js` 13/13 通過）
+- **今日新增完成項目 (2026-11-17)**：
+  - [x] **夜間 `00:00 ~ 02:55` 首輪自動演練完成**：實測覆蓋達 `150/150 (100%)`、通過率 `91/150 (61%)`（目錄探索與安全/算數/格式領域達 `100%`）。
+  - [x] **含空格 Windows 路徑抓取 & `lastCursor` 跳題修正**：實作 `extractWindowsPathFromMessage()` 完整支援 `D:\Antigravity Project\...` 等含空格路徑；修正 `ollamaTrainer.js` 迴圈內 `startCursor` 鎖定以消除跳題。
+  - [x] **專屬領域消歧 & `secondbrain_tool` 保底**：於 `selectRelevantTools()` 排除通用動詞誤掛 `file_ops` / `web_search` / `scan_local_projects`，並於 `inferDeterministicToolCall()` 補齊 `secondbrain_tool`（`lint`/`list_hubs`/`read`/`search`）保底分派。
+  - [x] **單輪直達加速 (`Zero-Waste Pre-Fetch`) + 防睡眠守護 + `ollama調效.md` 十大配方**：先預取確定性單工具實證數據讓 `Ollama` 只跑 1 輪總結，並加入 `2400` 字元截斷、`num_predict: 640` 節流與繁中輸出錨點；於 `ollamaTrainer.js` 內建 `startSleepGuard()` 防系統睡眠（允許關螢幕、不登出）；更新 `ollama調效.md` 為十大實戰調校配方。
+- **昨日已完成項目 (2026-11-16)**：
   - [x] **Ollama 端口衝突自癒與背景拉起 (`ensureOllamaRunning`)**：解決 RealVNC 等程式佔用 `127.0.0.1:11434` 導致 `WSAEACCES` 與 `fetch failed` 問題；依序探測 `[11434, 11435, 11436, 11440, 18434]` 自動切換可用埠並背景靜默啟動 `ollama.exe serve`（實測自動切換至 `11435`）。
   - [x] **Windows 路徑工具呼叫容錯與防吞字修復**：`callOllamaChat()` 移除原生 `payload.tools`（改由 `buildSystemPrompt` 動態注入當次篩選工具 Schema 與 `<tool_call>` 協定），避免 Ollama Go 層解析 Windows 反斜線路徑失敗吞成空字串；實作 `tryParseJsonWithBackslashRepair()`、`parseLooseToolJson()`、`normalizeToolCallObj()`、`inferDeterministicToolCall()` 與 `formatFallbackReplyFromResults()`，並於 `fileOps()` 自動過濾 `~$` 暫存鎖定檔。
   - [x] **建立兩份可攜式調校資產**：
@@ -33,7 +38,7 @@
   - [x] 完成 **智慧工具意圖分流 (`selectRelevantTools`) 與 `memory_tool` 寫入防呆優化**：於 `server/agentCore.js` 實作依指令意圖按需掛載工具 Schema（純算數與一般對話回傳 `[]`，不再注入 11 個工具 Schema 與 `<tool_call>` 提示），並於 `memory_tool` 攔截無記憶意圖之 `append` 呼叫，將 `請計算1+98` 回應時間由 `106.2 秒` 降至預熱後 `1.4 秒`（`node scripts/verify.js` `13/13` 通過）。
 
 ## 下一步待辦 (Next Steps)
-- [ ] **檢視 `2026-11-17 00:00 ~ 03:00` 首輪自動演練戰報**：開機並確認 [`ollama調效.md`](./ollama調效.md) 與 [`離線AI_Agent調效考題教材.md`](./離線AI_Agent調效考題教材.md) 之實機覆蓋與自動修補進度。
+- [ ] **驗收 `2026-11-18 00:00 ~ 03:00` 修復後全量重測戰報**：確認套用單輪直達加速與專屬領域消歧後，150 題通過率是否大幅提升至 `≥ 98%` 並達標畢業停機。
 - [ ] **另一台電腦實機驗證**：於目標 Windows 電腦執行 `git clone https://github.com/ericho-0213/AI-agent-lazy-package.git` 後執行 `.\scripts\setup_new_pc.ps1`，並可搭配 `ollama調效.md` 一鍵調校。
 - [ ] **選配擴充進階模型**：依需求透過 `scripts/fast_pull_ollama.ps1` 或戰情室中控台拉取 `qwen2.5:7b`、`deepseek-r1:7b` 等模型。
 - [ ] **依現場需求擴充專案工具**：於 `server/projectTools.js` 擴充其他系統之自動化數據分析或報表工作流。

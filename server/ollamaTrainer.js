@@ -8,6 +8,7 @@
  */
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawn } = require('node:child_process');
 const agentCore = require('./agentCore');
 const projectTools = require('./projectTools');
 
@@ -738,6 +739,46 @@ function ensureCurriculumGenerated() {
   }
 }
 
+let sleepGuardProc = null;
+
+/**
+ * 演練期間啟用 Windows 防系統睡眠守護（允許關閉螢幕省電，不登出使用者工作階段）
+ */
+function startSleepGuard() {
+  if (sleepGuardProc || process.platform !== 'win32') return;
+  try {
+    const psScript = `
+Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class TrainerAwake { [DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint esFlags); }' -ErrorAction SilentlyContinue
+while ($true) {
+  [void][TrainerAwake]::SetThreadExecutionState([uint32]2147483649)
+  Start-Sleep -Seconds 30
+}
+`;
+    const encoded = Buffer.from(psScript, 'utf16le').toString('base64');
+    sleepGuardProc = spawn(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
+      { stdio: 'ignore', windowsHide: true }
+    );
+    sleepGuardProc.unref();
+    sleepGuardProc.on('exit', () => {
+      sleepGuardProc = null;
+    });
+  } catch {
+    sleepGuardProc = null;
+  }
+}
+
+function stopSleepGuard() {
+  if (!sleepGuardProc) return;
+  try {
+    sleepGuardProc.kill();
+  } catch {
+    // ignore
+  }
+  sleepGuardProc = null;
+}
+
 /**
  * 執行一批自主演練與自癒迴圈
  */
@@ -773,6 +814,9 @@ async function runTrainingBatch({
   const fixes = [];
   let liveCount = 0;
 
+  const startCursor = Number(state.lastCursor) || 0;
+  startSleepGuard();
+
   try {
     for (let offset = 0; offset < batchSize; offset++) {
       if (activeRun.stopRequested) break;
@@ -784,7 +828,7 @@ async function runTrainingBatch({
       }
       if (activeRun.stopRequested || Date.now() - tStart >= maxDurationMs) break;
 
-      const idx = (state.lastCursor + offset) % scenarios.length;
+      const idx = (startCursor + offset) % scenarios.length;
       const scen = scenarios[idx];
       activeRun.currentScenarioId = scen.id;
 
@@ -829,9 +873,19 @@ async function runTrainingBatch({
 
       testedCount++;
       activeRun.processedInRun = testedCount;
+
+      if (testedCount % 5 === 0) {
+        state.lastCursor = (idx + 1) % scenarios.length;
+        state.lastRunAt = new Date().toISOString();
+        const { categoryStats: midStats } = summarizeState(state, scenarios);
+        saveTrainerState(state);
+        syncPlaybookMarkdown(state, midStats);
+        syncCurriculumMarkdown(scenarios, state, midStats);
+        console.log(`[OllamaTrainer] 進度 ${testedCount}/${batchSize}｜通過 ${passedCount}｜修補 ${healedCount}｜目前=${scen.id} (${evalRes.passed ? 'PASS' : 'FAIL'})`);
+      }
     }
 
-    state.lastCursor = (state.lastCursor + testedCount) % scenarios.length;
+    state.lastCursor = (startCursor + testedCount) % scenarios.length;
     state.lastRunAt = new Date().toISOString();
     state.totalRuns = (state.totalRuns || 0) + 1;
     state.totalFixesApplied = (state.totalFixesApplied || 0) + healedCount;
@@ -867,6 +921,7 @@ async function runTrainingBatch({
       status: getTrainerStatus()
     };
   } finally {
+    stopSleepGuard();
     activeRun.running = false;
     activeRun.stopRequested = false;
     activeRun.currentScenarioId = null;

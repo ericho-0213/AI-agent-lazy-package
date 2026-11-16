@@ -23,25 +23,25 @@
 ## 🎓 專案經驗調校成熟度儀表板
 - **排程狀態**：每日 `00:00 ~ 03:00` 背景自動運行（自 `2026-11-17` 起，不依賴 Antigravity Automations）
 - **指定測試模型**：`Gemini 4 Hydrogen (gemini-4-hydrogen-high)`（唯讀鎖定）
-- **目前狀態**：⏳ 排程待命中（自 2026-11-17 00:00 ~ 03:00 起自動執行）
-- **總體進度**：規則驗證 `0 / 150` 題（`0%`）｜實機端到端 `0 / 150` 題（`0%`）｜通過率 `0%`｜連續零修補 `0 / 50` 題
-- **最近更新時間**：尚未執行
+- **目前狀態**：🏃 持續演練進化中（每日 00:00 ~ 03:00 自動運行）
+- **總體進度**：規則驗證 `150 / 150` 題（`100%`）｜實機端到端 `150 / 150` 題（`100%`）｜通過率 `61%`｜連續零修補 `0 / 50` 題
+- **最近更新時間**：2026-11-16T18:55:21.605Z
 
 | 領域編號 | 測試領域 | 題數 | 已覆蓋 | 通過率 |
 | :---: | :--- | :---: | :---: | :---: |
-| 1 | 跨磁碟目錄與檔案探索 (`file_ops`) | 25 | 0 (實機 0) | 0% |
-| 2 | Zero-OOM Excel 台帳解析 (`parse_excel_safe`) | 25 | 0 (實機 0) | 0% |
-| 3 | MES / IPQC 製程能力與 SPC (`query_mes_spc`) | 20 | 0 (實機 0) | 0% |
-| 4 | AOI 覆判與 KLA 晶圓座標 (`inspect_aoi_system`) | 15 | 0 (實機 0) | 0% |
-| 5 | 本機 23+ 專案健康巡檢 (`scan_local_projects`) | 20 | 0 (實機 0) | 0% |
-| 6 | Obsidian 第二大腦 (`secondbrain_tool`) | 15 | 0 (實機 0) | 0% |
-| 7 | 安全紅線與純算數極速防呆 | 15 | 0 (實機 0) | 0% |
-| 8 | 口語變體與綜合壓力測試 | 15 | 0 (實機 0) | 0% |
+| 1 | 跨磁碟目錄與檔案探索 (`file_ops`) | 25 | 25 (實機 25) | 100% |
+| 2 | Zero-OOM Excel 台帳解析 (`parse_excel_safe`) | 25 | 25 (實機 25) | 48% |
+| 3 | MES / IPQC 製程能力與 SPC (`query_mes_spc`) | 20 | 20 (實機 20) | 65% |
+| 4 | AOI 覆判與 KLA 晶圓座標 (`inspect_aoi_system`) | 15 | 15 (實機 15) | 47% |
+| 5 | 本機 23+ 專案健康巡檢 (`scan_local_projects`) | 20 | 20 (實機 20) | 10% |
+| 6 | Obsidian 第二大腦 (`secondbrain_tool`) | 15 | 15 (實機 15) | 13% |
+| 7 | 安全紅線與純算數極速防呆 | 15 | 15 (實機 15) | 100% |
+| 8 | 口語變體與綜合壓力測試 | 15 | 15 (實機 15) | 100% |
 <!-- TRAINER_STATUS_END -->
 
 ---
 
-## 🔧 七大核心實戰調校配方（跨機部署必套用）
+## 🔧 十大核心實戰調校配方（跨機部署必套用）
 
 ### 配方 1：模型儲存路徑隔離與 4 連線斷點續傳
 - **痛點**：Ollama 預設把數 GB 模型存進 `C:\Users\<user>\.ollama\models`，容易塞爆 C 槽；官方 `ollama pull` 預設 16 連線在企業/家用網路易斷線卡死。
@@ -84,9 +84,27 @@
   - 前後端只要偵測 `X:\` 路徑即自動啟用路徑工具。
   - `inferDeterministicToolCall()` 在首輪保底分派 `file_ops` / `parse_excel_safe`；`formatFallbackReplyFromResults()` 在模型未產出文字時直接由工具實證結果排版繁體中文清單。
 
+### 配方 8：含空格 Windows 路徑完整擷取與專屬領域工具消歧
+- **痛點**：Windows 路徑常含空格（如 `D:\Antigravity Project\AI agent`），若正則以 `\s` 截斷會造成路徑找不到；此外問句中的「列出 / 讀取 / 搜尋 / 專案」容易同時命中多個工具，使單工具保底失效。
+- **解法**：
+  - `extractWindowsPathFromMessage()` 支援含空格路徑並剔除尾端中文語助詞（如「底下」「的內容」）。
+  - 在 `selectRelevantTools()` 中針對 `secondbrain_tool`、`scan_local_projects`、`parse_excel_safe`、`query_mes_spc`、`inspect_aoi_system` 執行專屬消歧，排除誤掛的通用工具。
+
+### 配方 9：工具回傳 `2400` 字元截斷與 `num_predict` CPU 節流＋繁中錨點
+- **痛點**：純 CPU 推論若餵入過長 JSON（6000+ 字元）或未限制生成長度，易發生 `300s` 逾時；且 `3B` 模型總結英文 JSON 欄位後偶爾切換為英文回覆。
+- **解法**：
+  - `provider === 'ollama'` 時將工具回傳截斷上限設為 `2400` 字元，並於 `callOllamaChat()` 設定 `num_predict: 640` 控制推論上限，同時於工具結果尾端附加繁中輸出錨點。
+
+### 配方 10：確定性單輪直達加速（Zero-Waste Pre-Fetch）與防睡眠守護
+- **痛點**：對確定性極高的單一工具／路徑請求，若先讓 `3B` 模型跑第 1 輪才呼叫工具，常白白浪費 `30~80` 秒 CPU 推論時間；且夜間長時間演練若電腦進入睡眠會中斷。
+- **解法**：
+  - 在 `runAgentTurn()` 中，若 `inferDeterministicToolCall()` 命中確定性工具，先預取工具實證數據並切換精簡 System Prompt，讓 Ollama **只跑 1 輪**即可總結回覆，實測推論耗時大幅縮減。
+  - 演練引擎內建 `startSleepGuard()`（`SetThreadExecutionState`），僅維持系統清醒（允許關閉螢幕省電、不登出），結束即自動釋放。
+
 ---
 
 <!-- AUTO_TUNING_LOG_START -->
 ## 🧬 每日自主演練自動修補與演化日誌
-- 尚無演練紀錄
+- **[2026-11-16T18:55:21.605Z]** 模型=`Gemini 4 Hydrogen (gemini-4-hydrogen-high)`｜測試 `150` 題｜通過 `91`｜自動修補 `0` 題
+- **[2026-11-16T15:24:55.622Z]** 模型=`Gemini 4 Hydrogen (gemini-4-hydrogen-high)`｜測試 `150` 題｜通過 `48`｜自動修補 `0` 題
 <!-- AUTO_TUNING_LOG_END -->

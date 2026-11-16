@@ -459,6 +459,23 @@ function selectRelevantTools(message, enableTools = true) {
       matchedNames.add('parse_excel_safe');
     }
   }
+
+  // 專屬領域消歧：避免通用動詞（列出/讀取/搜尋）或「專案導航」多掛 file_ops / web_search / scan_local_projects
+  if (matchedNames.has('secondbrain_tool')) {
+    matchedNames.delete('web_search');
+    matchedNames.delete('scan_local_projects');
+    if (!hasWindowsPath) matchedNames.delete('file_ops');
+  }
+  if (matchedNames.has('scan_local_projects')) {
+    matchedNames.delete('file_ops');
+  }
+  if (matchedNames.has('parse_excel_safe')) {
+    matchedNames.delete('file_ops');
+  }
+  if ((matchedNames.has('query_mes_spc') || matchedNames.has('inspect_aoi_system')) && !hasWindowsPath) {
+    matchedNames.delete('file_ops');
+  }
+
   if (matchedNames.size === 0) return [];
   return TOOL_DEFINITIONS.filter((t) => matchedNames.has(t.name));
 }
@@ -757,7 +774,8 @@ async function callOllamaChat({ model, messages, tools, timeoutMs = 300000 }) {
     keep_alive: '30m',
     options: {
       temperature: 0.3,
-      num_ctx: ctxState.budgetTokens || 4096
+      num_ctx: ctxState.budgetTokens || 4096,
+      num_predict: 640
     }
   };
 
@@ -1334,20 +1352,62 @@ async function compactChatHistory({
   };
 }
 
+function extractWindowsPathFromMessage(message) {
+  const rawMatch = String(message || '').match(/([a-zA-Z]:\\[^\r\n"'`<>|，,。？?]+)/);
+  if (!rawMatch) return '';
+  let candidate = rawMatch[1]
+    .replace(/\s+(?:底下|裡面|裡|中|內|的|有|是|嗎|要|可|不|（|\().*$/, '')
+    .trim();
+  if (candidate.length > 3) {
+    candidate = candidate.replace(/[\\]+$/, '');
+  }
+  return candidate;
+}
+
 /**
- * 當小模型在首輪未輸出有效工具呼叫，但使用者明確指定 Windows 本機路徑時，確定性補救分派對應工具
+ * 當小模型在首輪未輸出有效工具呼叫，但使用者明確指定 Windows 本機路徑或單一領域工具時，確定性補救分派對應工具
  */
 function inferDeterministicToolCall(message, activeTools) {
   if (!Array.isArray(activeTools) || activeTools.length === 0) return [];
-  const pathMatch = String(message || '').match(/([a-zA-Z]:\\[^\s"'`<>|，,。？?]+)/);
-  if (!pathMatch) return [];
-
-  const targetPath = pathMatch[1];
-  if (/\.(xlsx|xlsm|xls)$/i.test(targetPath) && activeTools.some((t) => t.name === 'parse_excel_safe')) {
-    return [{ name: 'parse_excel_safe', arguments: { filePath: targetPath } }];
+  const msg = String(message || '');
+  const targetPath = extractWindowsPathFromMessage(msg);
+  if (targetPath) {
+    const wantsExcel = /\.(xlsx|xlsm|xls)$/i.test(targetPath)
+      || (activeTools.some((t) => t.name === 'parse_excel_safe') && !activeTools.some((t) => t.name === 'file_ops'));
+    if (wantsExcel && activeTools.some((t) => t.name === 'parse_excel_safe')) {
+      return [{ name: 'parse_excel_safe', arguments: { filePath: targetPath } }];
+    }
+    if (activeTools.some((t) => t.name === 'file_ops')) {
+      return [{ name: 'file_ops', arguments: { action: 'list', targetPath } }];
+    }
   }
-  if (activeTools.some((t) => t.name === 'file_ops')) {
-    return [{ name: 'file_ops', arguments: { action: 'list', targetPath } }];
+
+  if (activeTools.length === 1) {
+    const toolName = activeTools[0].name;
+    if (toolName === 'scan_local_projects') return [{ name: 'scan_local_projects', arguments: {} }];
+    if (toolName === 'inspect_aoi_system') return [{ name: 'inspect_aoi_system', arguments: { limit: 10 } }];
+    if (toolName === 'parse_excel_safe') return [{ name: 'parse_excel_safe', arguments: {} }];
+    if (toolName === 'query_mes_spc') {
+      const lotMatch = msg.match(/\b([0-9][A-Z0-9]{2,}-[A-Z0-9]+)\b/i);
+      const lotNo = lotMatch ? lotMatch[1] : (/列出|有哪些|可用/.test(msg) ? 'list' : '');
+      return [{ name: 'query_mes_spc', arguments: { lotNo } }];
+    }
+    if (toolName === 'secondbrain_tool') {
+      if (/lint|健康檢查/i.test(msg)) return [{ name: 'secondbrain_tool', arguments: { action: 'lint' } }];
+      if (/讀取.*\.md/i.test(msg)) {
+        const relMatch = msg.match(/([A-Za-z0-9_\u4e00-\u9fff-]+\/[A-Za-z0-9_\u4e00-\u9fff\s.-]+\.md)/i);
+        const fileMatch = msg.match(/([A-Za-z0-9_.-]+(?:\s+[A-Za-z0-9_.-]+)*\.md)/i);
+        const noteName = (relMatch ? relMatch[1] : (fileMatch ? fileMatch[1] : 'AI agent.md')).trim();
+        const notePath = noteName.includes('/') ? noteName : `專案導航HUB/${noteName}`;
+        return [{ name: 'secondbrain_tool', arguments: { action: 'read', notePath } }];
+      }
+      if (/列出|所有|hub/i.test(msg) && !/搜尋|關於|有關/.test(msg)) {
+        return [{ name: 'secondbrain_tool', arguments: { action: 'list_hubs' } }];
+      }
+      const qMatch = msg.match(/[「"']([^「」"']+)[」"']/);
+      const query = qMatch ? qMatch[1].trim() : 'AI agent';
+      return [{ name: 'secondbrain_tool', arguments: { action: 'search', query } }];
+    }
   }
   return [];
 }
@@ -1437,45 +1497,16 @@ async function runAgentTurn({
 
   const MAX_STEPS = 5;
   let finalReply = '';
+  const maxToolChars = provider === 'ollama' ? 2400 : 6000;
 
-  for (let step = 1; step <= MAX_STEPS; step++) {
-    const llmRes = provider === 'gemini'
-      ? await callGeminiChat({ model, systemPrompt, messages, tools: activeTools })
-      : await callOllamaChat({ model, messages, tools: activeTools });
-
-    const assistantMsg = llmRes.message || {};
-    const rawContent = String(assistantMsg.content || '');
-    const nativeCalls = Array.isArray(assistantMsg.tool_calls) ? assistantMsg.tool_calls : [];
-
-    let parsedCalls = nativeCalls.map((tc) => {
-      const fn = tc.function || tc;
-      let args = fn.arguments || {};
-      if (typeof args === 'string') {
-        try { args = JSON.parse(args); } catch { args = {}; }
-      }
-      return normalizeToolCallObj(fn.name, args) || { name: fn.name, arguments: args };
-    }).filter((c) => c && c.name);
-
-    if (parsedCalls.length === 0 && hasActiveTools) {
-      parsedCalls = extractFallbackToolCalls(rawContent);
-    }
-
-    if (step === 1 && parsedCalls.length === 0 && hasActiveTools) {
-      parsedCalls = inferDeterministicToolCall(message, activeTools);
-    }
-
-    if (parsedCalls.length === 0) {
-      finalReply = cleanDisplayText(rawContent);
-      break;
-    }
-
+  const executeParsedCalls = async ({ calls, step, thought = '', nativeCalls = [], appendAnchor = false }) => {
     messages.push({
       role: 'assistant',
-      content: rawContent || `<tool_call>${JSON.stringify(parsedCalls[0])}</tool_call>`,
+      content: thought || `<tool_call>${JSON.stringify(calls[0])}</tool_call>`,
       tool_calls: nativeCalls.length ? nativeCalls : undefined
     });
 
-    for (const call of parsedCalls) {
+    for (const call of calls) {
       const toolDef = getToolByName(call.name);
       const tTool0 = Date.now();
       let result;
@@ -1501,11 +1532,11 @@ async function runAgentTurn({
       executedResults.push({ toolName: call.name, args: call.arguments || {}, result });
 
       const serialized = JSON.stringify(result);
-      const trimmed = serialized.length > 6000 ? `${serialized.slice(0, 6000)}...(truncated)` : serialized;
+      const trimmed = serialized.length > maxToolChars ? `${serialized.slice(0, maxToolChars)}...(truncated)` : serialized;
 
       trace.push({
         step,
-        thought: cleanDisplayText(rawContent),
+        thought: cleanDisplayText(thought),
         toolName: call.name,
         args: call.arguments || {},
         durationMs: Date.now() - tTool0,
@@ -1516,9 +1547,61 @@ async function runAgentTurn({
       messages.push({
         role: 'tool',
         toolName: call.name,
-        content: trimmed
+        content: appendAnchor
+          ? `${trimmed}\n[請嚴格依據以上工具實證數據，以繁體中文（Taiwan）精簡清楚向「您」彙整回覆]`
+          : trimmed
       });
     }
+  };
+
+  // 單輪直達加速 (Zero-Waste Pre-Fetch)：針對確定性極高的單工具/路徑查詢，先執行工具再讓 Ollama 單輪總結
+  let startStep = 1;
+  if (provider === 'ollama' && hasActiveTools) {
+    const preFetchCalls = inferDeterministicToolCall(message, activeTools);
+    if (preFetchCalls.length > 0) {
+      messages[0] = { role: 'system', content: buildSystemPrompt([], provider) };
+      await executeParsedCalls({
+        calls: preFetchCalls,
+        step: 1,
+        thought: '單輪直達預取工具實證資料',
+        appendAnchor: true
+      });
+      startStep = 2;
+    }
+  }
+
+  for (let step = startStep; step <= MAX_STEPS; step++) {
+    const llmRes = provider === 'gemini'
+      ? await callGeminiChat({ model, systemPrompt, messages, tools: activeTools })
+      : await callOllamaChat({ model, messages, tools: activeTools });
+
+    const assistantMsg = llmRes.message || {};
+    const rawContent = String(assistantMsg.content || '');
+    const nativeCalls = Array.isArray(assistantMsg.tool_calls) ? assistantMsg.tool_calls : [];
+
+    let parsedCalls = nativeCalls.map((tc) => {
+      const fn = tc.function || tc;
+      let args = fn.arguments || {};
+      if (typeof args === 'string') {
+        try { args = JSON.parse(args); } catch { args = {}; }
+      }
+      return normalizeToolCallObj(fn.name, args) || { name: fn.name, arguments: args };
+    }).filter((c) => c && c.name);
+
+    if (parsedCalls.length === 0 && hasActiveTools && startStep === 1) {
+      parsedCalls = extractFallbackToolCalls(rawContent);
+    }
+
+    if (step === 1 && parsedCalls.length === 0 && hasActiveTools) {
+      parsedCalls = inferDeterministicToolCall(message, activeTools);
+    }
+
+    if (parsedCalls.length === 0) {
+      finalReply = cleanDisplayText(rawContent);
+      break;
+    }
+
+    await executeParsedCalls({ calls: parsedCalls, step, thought: rawContent, nativeCalls });
 
     if (step === MAX_STEPS) {
       finalReply = cleanDisplayText(rawContent) || '已完成多步驟工具呼叫並彙整上述結果。';
