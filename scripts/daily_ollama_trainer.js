@@ -19,20 +19,26 @@ function parseCliArgs(argv) {
     batch: 150,
     hours: 0,
     liveSampleSize: 1,
-    fullLive: false
+    fullLive: false,
+    untilDone: false,
+    onlyFailed: false
   };
   for (const arg of argv) {
     if (arg.startsWith('--batch=')) opts.batch = Number(arg.slice(8)) || 150;
     else if (arg.startsWith('--hours=')) opts.hours = Number(arg.slice(8)) || 0;
     else if (arg.startsWith('--live=')) opts.liveSampleSize = Number(arg.slice(7)) || 0;
     else if (arg === '--full-live') opts.fullLive = true;
+    else if (arg === '--until-done') opts.untilDone = true;
+    else if (arg === '--only-failed') opts.onlyFailed = true;
   }
   return opts;
 }
 
 async function main() {
   const opts = parseCliArgs(process.argv.slice(2));
-  const maxDurationMs = opts.hours > 0 ? opts.hours * 3600 * 1000 : 180000;
+  const maxDurationMs = opts.untilDone
+    ? Number.MAX_SAFE_INTEGER
+    : (opts.hours > 0 ? opts.hours * 3600 * 1000 : Number.MAX_SAFE_INTEGER);
 
   console.log(`[OllamaTrainer] 測試模型鎖定：${ollamaTrainer.TESTER_MODEL_DISPLAY} (${ollamaTrainer.TESTER_MODEL})`);
   console.log(`[OllamaTrainer] 開始演練：batch=${opts.batch}, fullLive=${opts.fullLive}, liveSampleSize=${opts.liveSampleSize}`);
@@ -43,6 +49,7 @@ async function main() {
     maxDurationMs,
     runLiveLlm: opts.fullLive,
     liveSampleSize: opts.liveSampleSize,
+    onlyFailed: opts.onlyFailed,
     trigger: 'cli_manual'
   });
 

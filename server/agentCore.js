@@ -464,13 +464,24 @@ function selectRelevantTools(message, enableTools = true) {
   if (matchedNames.has('secondbrain_tool')) {
     matchedNames.delete('web_search');
     matchedNames.delete('scan_local_projects');
+    matchedNames.delete('inspect_aoi_system');
+    matchedNames.delete('query_mes_spc');
+    matchedNames.delete('parse_excel_safe');
+    matchedNames.delete('query_outlook_safe');
     if (!hasWindowsPath) matchedNames.delete('file_ops');
   }
   if (matchedNames.has('scan_local_projects')) {
     matchedNames.delete('file_ops');
+    if (/vbs|啟動腳本|運行\s*port|端口|在線|專案.*狀態/i.test(msg)) {
+      matchedNames.delete('run_powershell');
+      matchedNames.delete('inspect_aoi_system');
+    }
   }
   if (matchedNames.has('parse_excel_safe')) {
     matchedNames.delete('file_ops');
+  }
+  if (matchedNames.has('inspect_aoi_system')) {
+    matchedNames.delete('web_search');
   }
   if ((matchedNames.has('query_mes_spc') || matchedNames.has('inspect_aoi_system')) && !hasWindowsPath) {
     matchedNames.delete('file_ops');

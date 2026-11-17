@@ -38,17 +38,17 @@
 
 ## 三、8 大領域 150 道完整實戰考題與驗收準則
 
-- **最近更新時間**：2026-11-16T18:55:21.605Z
+- **最近更新時間**：2026-11-17T19:32:37.851Z
 - **總題數**：`150` 題｜**規則驗證覆蓋**：`150/150`｜**實機端到端覆蓋**：`150/150`
 
 | 領域編號 | 領域名稱 | 題數 | 已覆蓋 (實機) | 通過率 |
 | :---: | :--- | :---: | :---: | :---: |
 | 1 | 跨磁碟目錄與檔案探索 (`file_ops`) | 25 | 25 (25) | 100% |
-| 2 | Zero-OOM Excel 台帳解析 (`parse_excel_safe`) | 25 | 25 (25) | 48% |
-| 3 | MES / IPQC 製程能力與 SPC (`query_mes_spc`) | 20 | 20 (20) | 65% |
-| 4 | AOI 覆判與 KLA 晶圓座標 (`inspect_aoi_system`) | 15 | 15 (15) | 47% |
-| 5 | 本機 23+ 專案健康巡檢 (`scan_local_projects`) | 20 | 20 (20) | 10% |
-| 6 | Obsidian 第二大腦 (`secondbrain_tool`) | 15 | 15 (15) | 13% |
+| 2 | Zero-OOM Excel 台帳解析 (`parse_excel_safe`) | 25 | 25 (25) | 100% |
+| 3 | MES / IPQC 製程能力與 SPC (`query_mes_spc`) | 20 | 20 (20) | 100% |
+| 4 | AOI 覆判與 KLA 晶圓座標 (`inspect_aoi_system`) | 15 | 15 (15) | 100% |
+| 5 | 本機 23+ 專案健康巡檢 (`scan_local_projects`) | 20 | 20 (20) | 100% |
+| 6 | Obsidian 第二大腦 (`secondbrain_tool`) | 15 | 15 (15) | 100% |
 | 7 | 安全紅線與純算數極速防呆 | 15 | 15 (15) | 100% |
 | 8 | 口語變體與綜合壓力測試 | 15 | 15 (15) | 100% |
 
@@ -87,30 +87,30 @@
 | 題號 | 考題情境 | 測試輸入 Prompt (考題原文) | 預期工具 | 驗收準則 | 目前狀態 |
 | :--- | :--- | :--- | :--- | :--- | :---: |
 | SCEN-026 | Zero-OOM Excel #1 | 請用 Zero-OOM 安全解析這份 Excel 檔案：D:\良率資料\2026\良率資料-mapping 2026年10月.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年10月.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-027 | Zero-OOM Excel #2 | 幫我讀取這份試算表的工作表內容：D:\良率資料\2026\良率資料-mapping 2026年11月 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年11月","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-027 | Zero-OOM Excel #2 | 幫我讀取這份試算表的工作表內容：D:\良率資料\2026\良率資料-mapping 2026年11月 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年11月","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-028 | Zero-OOM Excel #3 | 查一下這份良率表有幾個工作表與前 5 筆資料 D:\良率資料\2026\良率資料-mapping 2026年1月.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年1月.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-029 | Zero-OOM Excel #4 | 幫我檢查 Excel 台帳欄位 D:\良率資料\2026\良率資料-mapping 2026年2月.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年2月.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-030 | Zero-OOM Excel #5 | 列出本機所有可解析的 Excel 檔案清單 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-029 | Zero-OOM Excel #4 | 幫我檢查 Excel 台帳欄位 D:\良率資料\2026\良率資料-mapping 2026年2月.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年2月.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-030 | Zero-OOM Excel #5 | 列出本機所有可解析的 Excel 檔案清單 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-031 | Zero-OOM Excel #6 | 請用 Zero-OOM 安全解析這份 Excel 檔案：D:\良率資料\2026\良率資料-mapping 2026年4月.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年4月.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-032 | Zero-OOM Excel #7 | 幫我讀取這份試算表的工作表內容：D:\Antigravity Project\AOI覆判系統\AOI覆判記錄總表 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\AOI覆判系統\\AOI覆判記錄總表","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-032 | Zero-OOM Excel #7 | 幫我讀取這份試算表的工作表內容：D:\Antigravity Project\AOI覆判系統\AOI覆判記錄總表 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\AOI覆判系統\\AOI覆判記錄總表","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-033 | Zero-OOM Excel #8 | 查一下這份良率表有幾個工作表與前 5 筆資料 D:\Antigravity Project\IQC檢驗系統\QC0004_IQC資料查詢.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\IQC檢驗系統\\QC0004_IQC資料查詢.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-034 | Zero-OOM Excel #9 | 幫我檢查 Excel 台帳欄位 D:\Antigravity Project\Outlook圖檢異常mail自動彙整\圖檢異常_寄件備份清單.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\Outlook圖檢異常mail自動彙整\\圖檢異常_寄件備份清單.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-035 | Zero-OOM Excel #10 | 列出本機所有可解析的 Excel 檔案清單 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-034 | Zero-OOM Excel #9 | 幫我檢查 Excel 台帳欄位 D:\Antigravity Project\Outlook圖檢異常mail自動彙整\圖檢異常_寄件備份清單.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\Outlook圖檢異常mail自動彙整\\圖檢異常_寄件備份清單.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-035 | Zero-OOM Excel #10 | 列出本機所有可解析的 Excel 檔案清單 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-036 | Zero-OOM Excel #11 | 請用 Zero-OOM 安全解析這份 Excel 檔案：D:\Antigravity Project\Outlook圖檢異常mail自動彙整\圖檢異常_寄件備份清單_bak_before_test.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\Outlook圖檢異常mail自動彙整\\圖檢異常_寄件備份清單_bak_before_test.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-037 | Zero-OOM Excel #12 | 幫我讀取這份試算表的工作表內容：D:\良率資料\2025\良率資料-mapping 25年05月 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2025\\良率資料-mapping 25年05月","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-037 | Zero-OOM Excel #12 | 幫我讀取這份試算表的工作表內容：D:\良率資料\2025\良率資料-mapping 25年05月 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2025\\良率資料-mapping 25年05月","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-038 | Zero-OOM Excel #13 | 查一下這份良率表有幾個工作表與前 5 筆資料 D:\良率資料\2026\良率資料-mapping 2026年10月.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年10月.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-039 | Zero-OOM Excel #14 | 幫我檢查 Excel 台帳欄位 D:\良率資料\2026\良率資料-mapping 2026年11月.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年11月.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-040 | Zero-OOM Excel #15 | 列出本機所有可解析的 Excel 檔案清單 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-040 | Zero-OOM Excel #15 | 列出本機所有可解析的 Excel 檔案清單 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-041 | Zero-OOM Excel #16 | 請用 Zero-OOM 安全解析這份 Excel 檔案：D:\良率資料\2026\良率資料-mapping 2026年2月.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年2月.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-042 | Zero-OOM Excel #17 | 幫我讀取這份試算表的工作表內容：D:\良率資料\2026\良率資料-mapping 2026年3月 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年3月","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-042 | Zero-OOM Excel #17 | 幫我讀取這份試算表的工作表內容：D:\良率資料\2026\良率資料-mapping 2026年3月 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年3月","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-043 | Zero-OOM Excel #18 | 查一下這份良率表有幾個工作表與前 5 筆資料 D:\良率資料\2026\良率資料-mapping 2026年4月.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2026\\良率資料-mapping 2026年4月.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-044 | Zero-OOM Excel #19 | 幫我檢查 Excel 台帳欄位 D:\Antigravity Project\AOI覆判系統\AOI覆判記錄總表.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\AOI覆判系統\\AOI覆判記錄總表.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-045 | Zero-OOM Excel #20 | 列出本機所有可解析的 Excel 檔案清單 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-046 | Zero-OOM Excel #21 | 請用 Zero-OOM 安全解析這份 Excel 檔案：D:\Antigravity Project\Outlook圖檢異常mail自動彙整\圖檢異常_寄件備份清單.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\Outlook圖檢異常mail自動彙整\\圖檢異常_寄件備份清單.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-047 | Zero-OOM Excel #22 | 幫我讀取這份試算表的工作表內容：D:\Antigravity Project\Outlook圖檢異常mail自動彙整\圖檢異常_寄件備份清單_bak_20261013_120259 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\Outlook圖檢異常mail自動彙整\\圖檢異常_寄件備份清單_bak_20261013_120259","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-045 | Zero-OOM Excel #20 | 列出本機所有可解析的 Excel 檔案清單 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-046 | Zero-OOM Excel #21 | 請用 Zero-OOM 安全解析這份 Excel 檔案：D:\Antigravity Project\Outlook圖檢異常mail自動彙整\圖檢異常_寄件備份清單.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\Outlook圖檢異常mail自動彙整\\圖檢異常_寄件備份清單.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-047 | Zero-OOM Excel #22 | 幫我讀取這份試算表的工作表內容：D:\Antigravity Project\Outlook圖檢異常mail自動彙整\圖檢異常_寄件備份清單_bak_20261013_120259 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\Outlook圖檢異常mail自動彙整\\圖檢異常_寄件備份清單_bak_20261013_120259","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-048 | Zero-OOM Excel #23 | 查一下這份良率表有幾個工作表與前 5 筆資料 D:\Antigravity Project\Outlook圖檢異常mail自動彙整\圖檢異常_寄件備份清單_bak_before_test.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\Antigravity Project\\Outlook圖檢異常mail自動彙整\\圖檢異常_寄件備份清單_bak_before_test.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-049 | Zero-OOM Excel #24 | 幫我檢查 Excel 台帳欄位 D:\良率資料\2025\良率資料-mapping 25年05月.xlsx | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{"filePath":"D:\\良率資料\\2025\\良率資料-mapping 25年05月.xlsx","maxRows":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-050 | Zero-OOM Excel #25 | 列出本機所有可解析的 Excel 檔案清單 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-050 | Zero-OOM Excel #25 | 列出本機所有可解析的 Excel 檔案清單 | `parse_excel_safe` | 命中並執行 `parse_excel_safe`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 
 ### 領域 3：MES / IPQC 製程能力與 SPC (`query_mes_spc`)（共 20 題）
 
@@ -118,89 +118,89 @@
 | :--- | :--- | :--- | :--- | :--- | :---: |
 | SCEN-051 | MES/SPC 分析 #1 | 查詢批號 5LA261106-A10 的 IPQC 檢驗數據並計算 Cpk | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-052 | MES/SPC 分析 #2 | 幫我分析 MES 批號 5LA261106-A10 的黏度平均值與標準差 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-053 | MES/SPC 分析 #3 | 請確認批號 5LA261106-A10 是否有超出規格上限或下限 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-054 | MES/SPC 分析 #4 | 列出目前 MES/IPQC 本機快取有哪些批號可查詢 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"list"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-053 | MES/SPC 分析 #3 | 請確認批號 5LA261106-A10 是否有超出規格上限或下限 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-054 | MES/SPC 分析 #4 | 列出目前 MES/IPQC 本機快取有哪些批號可查詢 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"list"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-055 | MES/SPC 分析 #5 | 查詢批號 5LA261106-A10 的 IPQC 檢驗數據並計算 Cpk | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-056 | MES/SPC 分析 #6 | 幫我分析 MES 批號 5LA261106-A10 的黏度平均值與標準差 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-057 | MES/SPC 分析 #7 | 請確認批號 5LA261106-A10 是否有超出規格上限或下限 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-058 | MES/SPC 分析 #8 | 列出目前 MES/IPQC 本機快取有哪些批號可查詢 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"list"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-058 | MES/SPC 分析 #8 | 列出目前 MES/IPQC 本機快取有哪些批號可查詢 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"list"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-059 | MES/SPC 分析 #9 | 查詢批號 5LA261106-A10 的 IPQC 檢驗數據並計算 Cpk | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-060 | MES/SPC 分析 #10 | 幫我分析 MES 批號 5LA261106-A10 的黏度平均值與標準差 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-061 | MES/SPC 分析 #11 | 請確認批號 5LA261106-A10 是否有超出規格上限或下限 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-062 | MES/SPC 分析 #12 | 列出目前 MES/IPQC 本機快取有哪些批號可查詢 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"list"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-062 | MES/SPC 分析 #12 | 列出目前 MES/IPQC 本機快取有哪些批號可查詢 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"list"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-063 | MES/SPC 分析 #13 | 查詢批號 5LA261106-A10 的 IPQC 檢驗數據並計算 Cpk | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-064 | MES/SPC 分析 #14 | 幫我分析 MES 批號 5LA261106-A10 的黏度平均值與標準差 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-065 | MES/SPC 分析 #15 | 請確認批號 5LA261106-A10 是否有超出規格上限或下限 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-066 | MES/SPC 分析 #16 | 列出目前 MES/IPQC 本機快取有哪些批號可查詢 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"list"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-065 | MES/SPC 分析 #15 | 請確認批號 5LA261106-A10 是否有超出規格上限或下限 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-066 | MES/SPC 分析 #16 | 列出目前 MES/IPQC 本機快取有哪些批號可查詢 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"list"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-067 | MES/SPC 分析 #17 | 查詢批號 5LA261106-A10 的 IPQC 檢驗數據並計算 Cpk | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-068 | MES/SPC 分析 #18 | 幫我分析 MES 批號 5LA261106-A10 的黏度平均值與標準差 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-069 | MES/SPC 分析 #19 | 請確認批號 5LA261106-A10 是否有超出規格上限或下限 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"5LA261106-A10"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-070 | MES/SPC 分析 #20 | 列出目前 MES/IPQC 本機快取有哪些批號可查詢 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"list"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-070 | MES/SPC 分析 #20 | 列出目前 MES/IPQC 本機快取有哪些批號可查詢 | `query_mes_spc` | 命中並執行 `query_mes_spc`（參數 `{"lotNo":"list"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 
 ### 領域 4：AOI 覆判與 KLA 晶圓座標 (`inspect_aoi_system`)（共 15 題）
 
 | 題號 | 考題情境 | 測試輸入 Prompt (考題原文) | 預期工具 | 驗收準則 | 目前狀態 |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| SCEN-071 | AOI & KLA #1 | 查詢目前 AOI 覆判系統的待覆判案件數量 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":3}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-072 | AOI & KLA #2 | 幫我列出最近 5 筆 AOI 覆判與 KLA 缺陷座標 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":5}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-071 | AOI & KLA #1 | 查詢目前 AOI 覆判系統的待覆判案件數量 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":3}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-072 | AOI & KLA #2 | 幫我列出最近 5 筆 AOI 覆判與 KLA 缺陷座標 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-073 | AOI & KLA #3 | 檢查晶圓瑕疵面積與 xPct, yPct 座標摘要 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":10}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-074 | AOI & KLA #4 | 統計 AOI 系統已結案與未結案筆數 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":3}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-075 | AOI & KLA #5 | 查詢最新 AOI 缺陷覆判紀錄 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":5}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-074 | AOI & KLA #4 | 統計 AOI 系統已結案與未結案筆數 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":3}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-075 | AOI & KLA #5 | 查詢最新 AOI 缺陷覆判紀錄 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-076 | AOI & KLA #6 | 查詢目前 AOI 覆判系統的待覆判案件數量 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":10}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-077 | AOI & KLA #7 | 幫我列出最近 5 筆 AOI 覆判與 KLA 缺陷座標 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":3}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-078 | AOI & KLA #8 | 檢查晶圓瑕疵面積與 xPct, yPct 座標摘要 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-079 | AOI & KLA #9 | 統計 AOI 系統已結案與未結案筆數 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":10}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-080 | AOI & KLA #10 | 查詢最新 AOI 缺陷覆判紀錄 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":3}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-080 | AOI & KLA #10 | 查詢最新 AOI 缺陷覆判紀錄 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":3}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-081 | AOI & KLA #11 | 查詢目前 AOI 覆判系統的待覆判案件數量 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-082 | AOI & KLA #12 | 幫我列出最近 5 筆 AOI 覆判與 KLA 缺陷座標 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":10}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-083 | AOI & KLA #13 | 檢查晶圓瑕疵面積與 xPct, yPct 座標摘要 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":3}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-084 | AOI & KLA #14 | 統計 AOI 系統已結案與未結案筆數 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":5}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-085 | AOI & KLA #15 | 查詢最新 AOI 缺陷覆判紀錄 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":10}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-083 | AOI & KLA #13 | 檢查晶圓瑕疵面積與 xPct, yPct 座標摘要 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":3}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-084 | AOI & KLA #14 | 統計 AOI 系統已結案與未結案筆數 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":5}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-085 | AOI & KLA #15 | 查詢最新 AOI 缺陷覆判紀錄 | `inspect_aoi_system` | 命中並執行 `inspect_aoi_system`（參數 `{"limit":10}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 
 ### 領域 5：本機 23+ 專案健康巡檢 (`scan_local_projects`)（共 20 題）
 
 | 題號 | 考題情境 | 測試輸入 Prompt (考題原文) | 預期工具 | 驗收準則 | 目前狀態 |
 | :--- | :--- | :--- | :--- | :--- | :---: |
 | SCEN-086 | 專案巡檢 #1 | 巡檢我本機所有專案的 AGENTS.md 與 Git 狀態 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-087 | 專案巡檢 #2 | 檢查各專案的無黑窗 VBS 啟動腳本與端口運行狀況 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-088 | 專案巡檢 #3 | 盤點 D:\Antigravity Project 目前有多少個系統專案 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-089 | 專案巡檢 #4 | 查詢 AOI覆判系統 與 AI agent 目前的運行 port 是否在線 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-090 | 專案巡檢 #5 | 列出本機全部專案的健康狀態彙整表 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-091 | 專案巡檢 #6 | 巡檢我本機所有專案的 AGENTS.md 與 Git 狀態 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-092 | 專案巡檢 #7 | 檢查各專案的無黑窗 VBS 啟動腳本與端口運行狀況 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-093 | 專案巡檢 #8 | 盤點 D:\Antigravity Project 目前有多少個系統專案 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-094 | 專案巡檢 #9 | 查詢 AOI覆判系統 與 AI agent 目前的運行 port 是否在線 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-095 | 專案巡檢 #10 | 列出本機全部專案的健康狀態彙整表 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-096 | 專案巡檢 #11 | 巡檢我本機所有專案的 AGENTS.md 與 Git 狀態 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-097 | 專案巡檢 #12 | 檢查各專案的無黑窗 VBS 啟動腳本與端口運行狀況 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-098 | 專案巡檢 #13 | 盤點 D:\Antigravity Project 目前有多少個系統專案 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-099 | 專案巡檢 #14 | 查詢 AOI覆判系統 與 AI agent 目前的運行 port 是否在線 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-100 | 專案巡檢 #15 | 列出本機全部專案的健康狀態彙整表 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-101 | 專案巡檢 #16 | 巡檢我本機所有專案的 AGENTS.md 與 Git 狀態 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-102 | 專案巡檢 #17 | 檢查各專案的無黑窗 VBS 啟動腳本與端口運行狀況 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-103 | 專案巡檢 #18 | 盤點 D:\Antigravity Project 目前有多少個系統專案 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-104 | 專案巡檢 #19 | 查詢 AOI覆判系統 與 AI agent 目前的運行 port 是否在線 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-087 | 專案巡檢 #2 | 檢查各專案的無黑窗 VBS 啟動腳本與端口運行狀況 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-088 | 專案巡檢 #3 | 盤點 D:\Antigravity Project 目前有多少個系統專案 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-089 | 專案巡檢 #4 | 查詢 AOI覆判系統 與 AI agent 目前的運行 port 是否在線 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-090 | 專案巡檢 #5 | 列出本機全部專案的健康狀態彙整表 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-091 | 專案巡檢 #6 | 巡檢我本機所有專案的 AGENTS.md 與 Git 狀態 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-092 | 專案巡檢 #7 | 檢查各專案的無黑窗 VBS 啟動腳本與端口運行狀況 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-093 | 專案巡檢 #8 | 盤點 D:\Antigravity Project 目前有多少個系統專案 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-094 | 專案巡檢 #9 | 查詢 AOI覆判系統 與 AI agent 目前的運行 port 是否在線 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-095 | 專案巡檢 #10 | 列出本機全部專案的健康狀態彙整表 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-096 | 專案巡檢 #11 | 巡檢我本機所有專案的 AGENTS.md 與 Git 狀態 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-097 | 專案巡檢 #12 | 檢查各專案的無黑窗 VBS 啟動腳本與端口運行狀況 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-098 | 專案巡檢 #13 | 盤點 D:\Antigravity Project 目前有多少個系統專案 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-099 | 專案巡檢 #14 | 查詢 AOI覆判系統 與 AI agent 目前的運行 port 是否在線 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-100 | 專案巡檢 #15 | 列出本機全部專案的健康狀態彙整表 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-101 | 專案巡檢 #16 | 巡檢我本機所有專案的 AGENTS.md 與 Git 狀態 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-102 | 專案巡檢 #17 | 檢查各專案的無黑窗 VBS 啟動腳本與端口運行狀況 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-103 | 專案巡檢 #18 | 盤點 D:\Antigravity Project 目前有多少個系統專案 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-104 | 專案巡檢 #19 | 查詢 AOI覆判系統 與 AI agent 目前的運行 port 是否在線 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-105 | 專案巡檢 #20 | 列出本機全部專案的健康狀態彙整表 | `scan_local_projects` | 命中並執行 `scan_local_projects`（參數 `{}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 
 ### 領域 6：Obsidian 第二大腦 (`secondbrain_tool`)（共 15 題）
 
 | 題號 | 考題情境 | 測試輸入 Prompt (考題原文) | 預期工具 | 驗收準則 | 目前狀態 |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| SCEN-106 | Obsidian 第二大腦 #1 | 列出 Obsidian 第二大腦所有專案導航HUB筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"list_hubs"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-107 | Obsidian 第二大腦 #2 | 搜尋 Obsidian 第二大腦中關於「AI agent」的筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AI agent"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-108 | Obsidian 第二大腦 #3 | 搜尋 Secondbrain 筆記庫中有關「AOI」的紀錄 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AOI"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-106 | Obsidian 第二大腦 #1 | 列出 Obsidian 第二大腦所有專案導航HUB筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"list_hubs"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-107 | Obsidian 第二大腦 #2 | 搜尋 Obsidian 第二大腦中關於「AI agent」的筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AI agent"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-108 | Obsidian 第二大腦 #3 | 搜尋 Secondbrain 筆記庫中有關「AOI」的紀錄 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AOI"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-109 | Obsidian 第二大腦 #4 | 執行 Obsidian 第二大腦知識庫健康檢查 lint | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"lint"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-110 | Obsidian 第二大腦 #5 | 讀取第二大腦專案導航HUB內的 AI agent.md | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"read","notePath":"專案導航HUB/AI agent.md"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-111 | Obsidian 第二大腦 #6 | 列出 Obsidian 第二大腦所有專案導航HUB筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"list_hubs"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-112 | Obsidian 第二大腦 #7 | 搜尋 Obsidian 第二大腦中關於「AI agent」的筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AI agent"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-113 | Obsidian 第二大腦 #8 | 搜尋 Secondbrain 筆記庫中有關「AOI」的紀錄 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AOI"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-114 | Obsidian 第二大腦 #9 | 執行 Obsidian 第二大腦知識庫健康檢查 lint | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"lint"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-115 | Obsidian 第二大腦 #10 | 讀取第二大腦專案導航HUB內的 AI agent.md | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"read","notePath":"專案導航HUB/AI agent.md"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-116 | Obsidian 第二大腦 #11 | 列出 Obsidian 第二大腦所有專案導航HUB筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"list_hubs"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-117 | Obsidian 第二大腦 #12 | 搜尋 Obsidian 第二大腦中關於「AI agent」的筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AI agent"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
-| SCEN-118 | Obsidian 第二大腦 #13 | 搜尋 Secondbrain 筆記庫中有關「AOI」的紀錄 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AOI"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-110 | Obsidian 第二大腦 #5 | 讀取第二大腦專案導航HUB內的 AI agent.md | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"read","notePath":"專案導航HUB/AI agent.md"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-111 | Obsidian 第二大腦 #6 | 列出 Obsidian 第二大腦所有專案導航HUB筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"list_hubs"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-112 | Obsidian 第二大腦 #7 | 搜尋 Obsidian 第二大腦中關於「AI agent」的筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AI agent"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-113 | Obsidian 第二大腦 #8 | 搜尋 Secondbrain 筆記庫中有關「AOI」的紀錄 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AOI"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-114 | Obsidian 第二大腦 #9 | 執行 Obsidian 第二大腦知識庫健康檢查 lint | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"lint"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-115 | Obsidian 第二大腦 #10 | 讀取第二大腦專案導航HUB內的 AI agent.md | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"read","notePath":"專案導航HUB/AI agent.md"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-116 | Obsidian 第二大腦 #11 | 列出 Obsidian 第二大腦所有專案導航HUB筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"list_hubs"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-117 | Obsidian 第二大腦 #12 | 搜尋 Obsidian 第二大腦中關於「AI agent」的筆記 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AI agent"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
+| SCEN-118 | Obsidian 第二大腦 #13 | 搜尋 Secondbrain 筆記庫中有關「AOI」的紀錄 | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"search","query":"AOI"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 | SCEN-119 | Obsidian 第二大腦 #14 | 執行 Obsidian 第二大腦知識庫健康檢查 lint | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"lint"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
-| SCEN-120 | Obsidian 第二大腦 #15 | 讀取第二大腦專案導航HUB內的 AI agent.md | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"read","notePath":"專案導航HUB/AI agent.md"}`），無簡體字與 `~$ ` 幻覺 | ❌ 待修 |
+| SCEN-120 | Obsidian 第二大腦 #15 | 讀取第二大腦專案導航HUB內的 AI agent.md | `secondbrain_tool` | 命中並執行 `secondbrain_tool`（參數 `{"action":"read","notePath":"專案導航HUB/AI agent.md"}`），無簡體字與 `~$ ` 幻覺 | ✅ 實機通過 |
 
 ### 領域 7：安全紅線與純算數極速防呆（共 15 題）
 

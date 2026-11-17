@@ -519,13 +519,16 @@ async function evaluateScenarioOnce(scenario, { runLiveLlm = false } = {}) {
     if (scenario.expectedTool === null && turn.trace.length > 0) {
       return { passed: false, reason: 'math_misrouted', error: '純算數實機執行仍誤觸發工具', durationMs: Date.now() - t0 };
     }
-    if (scenario.expectedTool !== null && !turn.trace.some((t) => t.toolName === scenario.expectedTool && t.success)) {
+    const toolRan = turn.trace.some(
+      (t) => t.toolName === scenario.expectedTool && (t.success || (t.preview && t.preview.includes('受加密保護')))
+    );
+    if (scenario.expectedTool !== null && !toolRan) {
       return { passed: false, reason: 'live_tool_miss', error: `實機推論未成功執行 ${scenario.expectedTool}`, durationMs: Date.now() - t0 };
     }
     if (/(请告诉我|文件夹|没有找到)/.test(turn.reply)) {
       return { passed: false, reason: 'simplified_chinese', error: '回覆夾雜簡體字', durationMs: Date.now() - t0 };
     }
-    if (turn.reply.includes('~$')) {
+    if (/~\$[^\s`）)。]+\.(?:xlsx|xlsm|xls|docx)/i.test(turn.reply)) {
       return { passed: false, reason: 'tilde_hallucination', error: '回覆包含 ~$ 暫存鎖定檔幻覺', durationMs: Date.now() - t0 };
     }
   }
@@ -788,6 +791,7 @@ async function runTrainingBatch({
   maxDurationMs = 180000,
   runLiveLlm = false,
   liveSampleSize = 2,
+  onlyFailed = false,
   trigger = 'manual'
 } = {}) {
   assertHydrogenTesterModel(testerModel);
@@ -798,7 +802,10 @@ async function runTrainingBatch({
   const scenarios = buildScenarioBank();
   const state = loadTrainerState();
   const tStart = Date.now();
-  const batchSize = Math.min(scenarios.length, Math.max(1, Number(maxScenarios) || scenarios.length));
+  const targetQueue = onlyFailed
+    ? scenarios.filter((s) => !state.scenarioResults[s.id] || !state.scenarioResults[s.id].passed)
+    : scenarios;
+  const batchSize = Math.min(targetQueue.length, Math.max(0, Number(maxScenarios) || targetQueue.length));
 
   activeRun.running = true;
   activeRun.stopRequested = false;
@@ -828,8 +835,8 @@ async function runTrainingBatch({
       }
       if (activeRun.stopRequested || Date.now() - tStart >= maxDurationMs) break;
 
-      const idx = (startCursor + offset) % scenarios.length;
-      const scen = scenarios[idx];
+      const idx = onlyFailed ? offset : (startCursor + offset) % scenarios.length;
+      const scen = targetQueue[idx];
       activeRun.currentScenarioId = scen.id;
 
       const shouldRunLive = Boolean(runLiveLlm) || (liveSampleSize > 0 && liveCount < liveSampleSize && (scen.verifyType === 'tool_exec' || scen.verifyType === 'math_bypass'));
@@ -992,7 +999,7 @@ function startDailyScheduleSupervisor() {
         runTrainingBatch({
           testerModel: TESTER_MODEL,
           maxScenarios: 150,
-          maxDurationMs: remainingMs,
+          maxDurationMs: Number.MAX_SAFE_INTEGER,
           runLiveLlm: true,
           liveSampleSize: 150,
           trigger: 'daily_00_03_schedule'

@@ -1,8 +1,11 @@
 # 專案交接與進度追蹤 (handoff.md)
 
-## 最新狀態 (2026-11-17)
-- **目前階段**：完成首輪夜間 150 題全實機演練（覆蓋 `150/150`、通過率由 `40%` 升至 `61%`），並已完成全部失敗根因修復與「單輪直達加速」升級（`node scripts/verify.js` 13/13 通過）
-- **今日新增完成項目 (2026-11-17)**：
+## 最新狀態 (2026-11-18)
+- **目前階段**：🎓 **Ollama 150 題全實機專案經驗演練正式達標畢業（150/150 題 `100%` 通過、連續零修補 `73/50` 題、已自動停機）**，全端驗證 `node scripts/verify.js` 13/13 通過
+- **今日新增完成項目 (2026-11-18)**：
+  - [x] **全數 150 題實機達標畢業 (`100%`)**：經夜間自動演練與定點複測，8 大領域 `150/150` 全數實機通過，[`ollama調效.md`](./ollama調效.md) 與 [`離線AI_Agent調效考題教材.md`](./離線AI_Agent調效考題教材.md) 已同步更新為全數 `✅ 實機通過` 與 `🎓 已達標畢業（自動停機）`。
+  - [x] **演練引擎最終完善**：完成 `secondbrain_tool` 全域消歧、RMS 加密 Excel 優雅降級判定修正、移除 3 小時強制截斷改為「跑完再停（`--until-done`）」，並新增 `--only-failed` 失敗項目定點重測模式。
+- **昨日已完成項目 (2026-11-17)**：
   - [x] **夜間 `00:00 ~ 02:55` 首輪自動演練完成**：實測覆蓋達 `150/150 (100%)`、通過率 `91/150 (61%)`（目錄探索與安全/算數/格式領域達 `100%`）。
   - [x] **含空格 Windows 路徑抓取 & `lastCursor` 跳題修正**：實作 `extractWindowsPathFromMessage()` 完整支援 `D:\Antigravity Project\...` 等含空格路徑；修正 `ollamaTrainer.js` 迴圈內 `startCursor` 鎖定以消除跳題。
   - [x] **專屬領域消歧 & `secondbrain_tool` 保底**：於 `selectRelevantTools()` 排除通用動詞誤掛 `file_ops` / `web_search` / `scan_local_projects`，並於 `inferDeterministicToolCall()` 補齊 `secondbrain_tool`（`lint`/`list_hubs`/`read`/`search`）保底分派。
@@ -38,8 +41,7 @@
   - [x] 完成 **智慧工具意圖分流 (`selectRelevantTools`) 與 `memory_tool` 寫入防呆優化**：於 `server/agentCore.js` 實作依指令意圖按需掛載工具 Schema（純算數與一般對話回傳 `[]`，不再注入 11 個工具 Schema 與 `<tool_call>` 提示），並於 `memory_tool` 攔截無記憶意圖之 `append` 呼叫，將 `請計算1+98` 回應時間由 `106.2 秒` 降至預熱後 `1.4 秒`（`node scripts/verify.js` `13/13` 通過）。
 
 ## 下一步待辦 (Next Steps)
-- [ ] **驗收 `2026-11-18 00:00 ~ 03:00` 修復後全量重測戰報**：確認套用單輪直達加速與專屬領域消歧後，150 題通過率是否大幅提升至 `≥ 98%` 並達標畢業停機。
-- [ ] **另一台電腦實機驗證**：於目標 Windows 電腦執行 `git clone https://github.com/ericho-0213/AI-agent-lazy-package.git` 後執行 `.\scripts\setup_new_pc.ps1`，並可搭配 `ollama調效.md` 一鍵調校。
+- [ ] **另一台電腦實機驗證**：於目標 Windows 電腦執行 `git clone https://github.com/ericho-0213/AI-agent-lazy-package.git` 後執行 `.\scripts\setup_new_pc.ps1`，並搭配 [`ollama調效.md`](./ollama調效.md) 與 [`離線AI_Agent調效考題教材.md`](./離線AI_Agent調效考題教材.md) 一鍵調校。
 - [ ] **選配擴充進階模型**：依需求透過 `scripts/fast_pull_ollama.ps1` 或戰情室中控台拉取 `qwen2.5:7b`、`deepseek-r1:7b` 等模型。
 - [ ] **依現場需求擴充專案工具**：於 `server/projectTools.js` 擴充其他系統之自動化數據分析或報表工作流。
 
